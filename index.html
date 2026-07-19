@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restoran Suriani</title>
+<meta name="description" content="Restoran Suriani — Masakan Melayu &amp; Masakan Padang">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!--
+  TODO before publishing — remaining placeholders:
+  1. 5 menu prices could not be read reliably from the scanned menu boards
+     (illegible or torn stickers) — see menu-data.js for the exact items,
+     or just tap them on the live site: they show "Sila tanya / Ask staff".
+  2. Gallery has 4 real interior/storefront photos; add food photos too if you'd like more variety
+-->
+
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="brand">
+      <span class="brand-bismillah">بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ</span>
+      <span class="brand-name">Restoran Suriani</span>
+      <span class="brand-tagline" data-en="Malay Cuisine, Masakan Panas, Hainanese Chicken Rice &amp; Western Food · Open 24 Hours" data-ms="Masakan Melayu, Masakan Panas, Nasi Ayam Hainan &amp; Makanan Barat · Buka 24 Jam">Masakan Melayu, Masakan Panas, Nasi Ayam Hainan &amp; Makanan Barat · Buka 24 Jam</span>
+    </div>
+    <nav class="site-nav">
+      <a href="#about" data-en="About" data-ms="Kisah Kami">Kisah Kami</a>
+      <a href="#menu" data-en="Menu" data-ms="Menu">Menu</a>
+      <a href="#catering" data-en="Catering" data-ms="Katering">Katering</a>
+      <a href="#gallery" data-en="Gallery" data-ms="Galeri">Galeri</a>
+      <a href="#location" data-en="Location" data-ms="Lokasi">Lokasi</a>
+      <a href="#contact" data-en="Contact" data-ms="Hubungi">Hubungi</a>
+      <button id="lang-toggle" class="lang-toggle" type="button" aria-label="Switch language">EN</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-inner">
+    <h1 data-en="Restoran Suriani" data-ms="Restoran Suriani">Restoran Suriani</h1>
+    <p class="hero-tagline" data-en="Malay cooking, masakan panas, Hainanese chicken rice &amp; western food — open 24 hours." data-ms="Masakan Melayu, masakan panas, nasi ayam Hainan &amp; makanan barat — buka 24 jam.">Masakan Melayu, masakan panas, nasi ayam Hainan &amp; makanan barat — buka 24 jam.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" id="whatsapp-btn" href="https://wa.me/60192103630" target="_blank" rel="noopener" data-en="Order on WhatsApp" data-ms="Pesan melalui WhatsApp">Pesan melalui WhatsApp</a>
+      <a class="btn btn-outline" href="#menu" data-en="View Menu" data-ms="Lihat Menu">Lihat Menu</a>
+    </div>
+  </div>
+</section>
+
+<main>
+
+  <section id="about" class="section">
+    <div class="container">
+      <h2 data-en="Our Story" data-ms="Kisah Kami">Kisah Kami</h2>
+      <p data-en="Restoran Suriani was founded by Rodiah Ahmad, who relocated to Kuala Lumpur in 1980 from her hometown of Kuala Kangsar, Perak. In 1986, she began her culinary journey with a modest food stall, where her home-style Malay cooking quickly earned a loyal following among the local community. Building on this early success, she established Restoran Suriani in 1995, laying the foundation for what has since grown into a well-loved dining destination in Pudu, Kuala Lumpur." data-ms="Restoran Suriani diasaskan oleh Rodiah Ahmad, yang berpindah ke Kuala Lumpur pada tahun 1980 dari kampung halamannya, Kuala Kangsar, Perak. Pada tahun 1986, beliau memulakan perjalanan kulinarinya dengan sebuah gerai makanan yang sederhana, di mana masakan Melayu ala rumahnya dengan cepat mendapat sambutan hangat daripada masyarakat setempat. Berbekalkan kejayaan awal ini, beliau menubuhkan Restoran Suriani pada tahun 1995, meletakkan asas kepada apa yang kini menjadi destinasi makan yang disenangi ramai di Pudu, Kuala Lumpur.">Restoran Suriani diasaskan oleh Rodiah Ahmad, yang berpindah ke Kuala Lumpur pada tahun 1980 dari kampung halamannya, Kuala Kangsar, Perak. Pada tahun 1986, beliau memulakan perjalanan kulinarinya dengan sebuah gerai makanan yang sederhana, di mana masakan Melayu ala rumahnya dengan cepat mendapat sambutan hangat daripada masyarakat setempat. Berbekalkan kejayaan awal ini, beliau menubuhkan Restoran Suriani pada tahun 1995, meletakkan asas kepada apa yang kini menjadi destinasi makan yang disenangi ramai di Pudu, Kuala Lumpur.</p>
+      <p data-en="For over three decades, the restaurant has continued to serve masakan panas, Hainanese chicken rice, and western favourites, prepared fresh around the clock. Today, Restoran Suriani stands as a testament to Rodiah Ahmad's enduring dedication and the values of quality and hospitality she instilled from its earliest days." data-ms="Selama lebih tiga dekad, restoran ini terus menghidangkan masakan panas, nasi ayam Hainan, serta hidangan barat, disediakan segar sepanjang masa. Kini, Restoran Suriani berdiri sebagai bukti dedikasi berterusan Rodiah Ahmad serta nilai kualiti dan keramahan yang diterapkannya sejak awal penubuhannya.">Selama lebih tiga dekad, restoran ini terus menghidangkan masakan panas, nasi ayam Hainan, serta hidangan barat, disediakan segar sepanjang masa. Kini, Restoran Suriani berdiri sebagai bukti dedikasi berterusan Rodiah Ahmad serta nilai kualiti dan keramahan yang diterapkannya sejak awal penubuhannya.</p>
+    </div>
+  </section>
+
+  <section id="menu" class="section section-alt">
+    <div class="container">
+      <h2 data-en="Menu" data-ms="Menu">Menu</h2>
+      <p class="section-note" data-en="Tap any dish for a closer look — picture, full description, and price. Dishes without a real photo yet show a simple illustration instead." data-ms="Ketik mana-mana hidangan untuk lihat lebih dekat — gambar, penerangan penuh dan harga. Hidangan yang belum ada foto sebenar akan memaparkan ilustrasi ringkas.">Ketik mana-mana hidangan untuk lihat lebih dekat — gambar, penerangan penuh dan harga. Hidangan yang belum ada foto sebenar akan memaparkan ilustrasi ringkas.</p>
+      <div class="menu-tabs" id="menu-tabs"></div>
+      <p class="menu-category-note" id="menu-category-note"></p>
+      <div class="menu-panels" id="menu-panels"></div>
+    </div>
+  </section>
+
+  <section id="catering" class="section">
+    <div class="container">
+      <h2 data-en="Catering &amp; Event Reservations" data-ms="Katering &amp; Tempahan Acara">Katering &amp; Tempahan Acara</h2>
+      <p class="section-note" data-en="Planning a wedding, birthday, corporate event, or kenduri? Restoran Suriani caters for events of any size. Fill in the details below and we'll reply to you on WhatsApp." data-ms="Merancang majlis perkahwinan, hari jadi, acara korporat atau kenduri? Restoran Suriani sedia menyediakan katering untuk sebarang acara. Isikan butiran di bawah dan kami akan menghubungi anda melalui WhatsApp.">Merancang majlis perkahwinan, hari jadi, acara korporat atau kenduri? Restoran Suriani sedia menyediakan katering untuk sebarang acara. Isikan butiran di bawah dan kami akan menghubungi anda melalui WhatsApp.</p>
+
+      <form class="catering-form" id="catering-form">
+        <div class="form-row">
+          <label for="catering-name" data-en="Your Name" data-ms="Nama Anda">Nama Anda</label>
+          <input type="text" id="catering-name" name="name" required>
+        </div>
+        <div class="form-row form-row-split">
+          <div>
+            <label for="catering-date" data-en="Event Date" data-ms="Tarikh Acara">Tarikh Acara</label>
+            <input type="date" id="catering-date" name="date" required>
+          </div>
+          <div>
+            <label for="catering-pax" data-en="Number of Guests" data-ms="Bilangan Tetamu">Bilangan Tetamu</label>
+            <input type="number" id="catering-pax" name="pax" min="1" placeholder="e.g. 100" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="catering-event-type" data-en="Event Type" data-ms="Jenis Acara">Jenis Acara</label>
+          <select id="catering-event-type" name="eventType">
+            <option data-en="Wedding" data-ms="Perkahwinan">Perkahwinan</option>
+            <option data-en="Birthday" data-ms="Hari Jadi">Hari Jadi</option>
+            <option data-en="Corporate Event" data-ms="Acara Korporat">Acara Korporat</option>
+            <option data-en="Kenduri" data-ms="Kenduri">Kenduri</option>
+            <option data-en="Other" data-ms="Lain-lain">Lain-lain</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="catering-notes" data-en="Notes (menu preferences, budget, location, etc.)" data-ms="Catatan (pilihan menu, bajet, lokasi, dsb.)">Catatan (pilihan menu, bajet, lokasi, dsb.)</label>
+          <textarea id="catering-notes" name="notes" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" data-en="Send Enquiry via WhatsApp" data-ms="Hantar Pertanyaan melalui WhatsApp">Hantar Pertanyaan melalui WhatsApp</button>
+        <p class="placeholder-text" data-en="This opens WhatsApp with your details filled in — you'll need to press send there to reach us." data-ms="Ini akan membuka WhatsApp dengan butiran anda diisi — anda perlu tekan hantar di sana untuk sampai kepada kami.">Ini akan membuka WhatsApp dengan butiran anda diisi — anda perlu tekan hantar di sana untuk sampai kepada kami.</p>
+      </form>
+    </div>
+  </section>
+
+  <section id="gallery" class="section section-alt">
+    <div class="container">
+      <h2 data-en="Gallery" data-ms="Galeri">Galeri</h2>
+      <p class="section-note" data-en="A look inside Restoran Suriani." data-ms="Suasana dalam Restoran Suriani.">Suasana dalam Restoran Suriani.</p>
+      <div class="gallery-grid">
+        <img class="gallery-photo" src="assets/storefront.jpg" alt="Restoran Suriani storefront">
+        <img class="gallery-photo" src="assets/interior.jpg" alt="Restoran Suriani dining area">
+        <img class="gallery-photo" src="assets/dining-area.jpg" alt="Restoran Suriani dining area and counter">
+        <img class="gallery-photo" src="assets/counter.jpg" alt="Restoran Suriani payment counter">
+      </div>
+    </div>
+  </section>
+
+  <section id="location" class="section">
+    <div class="container location-grid">
+      <div class="location-info">
+        <h2 data-en="Location &amp; Hours" data-ms="Lokasi &amp; Waktu Operasi">Lokasi &amp; Waktu Operasi</h2>
+        <p data-en="28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur" data-ms="28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur">28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur</p>
+        <table class="hours-table">
+          <tbody>
+            <tr><td data-en="Every day" data-ms="Setiap hari">Setiap hari</td><td data-en="Open 24 hours" data-ms="Buka 24 jam">Buka 24 jam</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="map-placeholder">
+        <iframe
+          src="https://www.google.com/maps?q=28%2C%20Lorong%201%2F77a%2C%20Pudu%2C%2055100%20Kuala%20Lumpur%2C%20Wilayah%20Persekutuan%20Kuala%20Lumpur&amp;output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          title="Restoran Suriani location"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact" class="section section-alt">
+    <div class="container contact-inner">
+      <h2 data-en="Contact Us" data-ms="Hubungi Kami">Hubungi Kami</h2>
+      <p data-en="Restaurant line: 03-9226 1408" data-ms="Talian restoran: 03-9226 1408">Talian restoran: 03-9226 1408</p>
+      <a class="btn btn-primary" href="https://wa.me/60192103630" target="_blank" rel="noopener" data-en="Message us on WhatsApp" data-ms="Hantar mesej melalui WhatsApp">Hantar mesej melalui WhatsApp</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; <span id="year"></span> Restoran Suriani. <span data-en="All rights reserved." data-ms="Hak cipta terpelihara.">Hak cipta terpelihara.</span></p>
+  </div>
+</footer>
+
+<div class="menu-modal" id="menu-modal" hidden>
+  <div class="menu-modal-backdrop" data-close-modal></div>
+  <div class="menu-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-name">
+    <button class="menu-modal-close" type="button" data-close-modal aria-label="Close">&times;</button>
+    <div class="menu-modal-icon" id="modal-icon"></div>
+    <p class="menu-illustration-tag" id="modal-illustration-tag" data-en="Illustration only — not an actual photo" data-ms="Hanya ilustrasi — bukan foto sebenar">Hanya ilustrasi — bukan foto sebenar</p>
+    <h3 id="modal-name"></h3>
+    <p id="modal-desc"></p>
+    <div class="menu-modal-price" id="modal-price"></div>
+    <p class="menu-modal-note" id="modal-note"></p>
+  </div>
+</div>
+
+<script src="menu-icons.js"></script>
+<script src="menu-data.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
