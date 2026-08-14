@@ -133,9 +133,12 @@ function Set-Setting {
 }
 
 function Set-DnsRecord {
+  # -Data carries the structured payload some record types demand. CAA is the
+  # one that bites: Cloudflare rejects a content string for it and requires
+  # { flags; tag; value } instead, with a 9101 that names the missing fields.
   param(
     [string]$Type, [string]$Name, [string]$Content,
-    [bool]$Proxied = $false, $Priority = $null
+    [bool]$Proxied = $false, $Priority = $null, $Data = $null
   )
 
   $fqdn = switch -Regex ($Name) {
@@ -144,25 +147,32 @@ function Set-DnsRecord {
     default                   { "$Name.$Domain" }
   }
 
-  $body = @{ type = $Type; name = $fqdn; content = $Content; ttl = 1; proxied = $Proxied }
+  $body = @{ type = $Type; name = $fqdn; ttl = 1; proxied = $Proxied }
+  if ($Data) { $body.data = $Data } else { $body.content = $Content }
   if ($null -ne $Priority) { $body.priority = $Priority }
+
+  $label = if ($Data) { "$($Data.flags) $($Data.tag) `"$($Data.value)`"" } else { $Content }
 
   $existing = (Invoke-CF GET "/zones/$Zone/dns_records?type=$Type&name=$fqdn").result
 
-  # Exact match already present -- nothing to do.
-  if ($existing | Where-Object { $_.content -eq $Content }) {
-    Ok "$Type $fqdn already set"; return
+  # Exact match already present -- nothing to do. Structured records are
+  # compared field by field, since their content string is server-formatted.
+  $match = if ($Data) {
+    $existing | Where-Object { $_.data.tag -eq $Data.tag -and $_.data.value -eq $Data.value }
+  } else {
+    $existing | Where-Object { $_.content -eq $Content }
   }
+  if ($match) { Ok "$Type $fqdn already set ($label)"; return }
 
   # Same (type,name) but different content: update rather than duplicate --
   # except TXT and CAA, where multiple values on one name are meaningful.
   if ($Type -ne 'TXT' -and $Type -ne 'CAA' -and $existing.Count -gt 0) {
     Invoke-CF PATCH "/zones/$Zone/dns_records/$($existing[0].id)" $body | Out-Null
-    Ok "$Type $fqdn updated -> $Content"; return
+    Ok "$Type $fqdn updated -> $label"; return
   }
 
   Invoke-CF POST "/zones/$Zone/dns_records" $body | Out-Null
-  Ok "$Type $fqdn created -> $Content"
+  Ok "$Type $fqdn created -> $label"
 }
 
 # --------------------------------------------------------------------------
@@ -255,8 +265,8 @@ function Phase-Caa {
   # Additive only. Cloudflare maintains its own CAA entries; a
   # reconcile-to-exact-list implementation would delete them and break renewal.
   foreach ($ca in @('letsencrypt.org', 'pki.goog; cansignhttpexchanges=yes', 'ssl.com')) {
-    Set-DnsRecord -Type CAA -Name '@' -Content "0 issue `"$ca`""
-    Set-DnsRecord -Type CAA -Name '@' -Content "0 issuewild `"$ca`""
+    Set-DnsRecord -Type CAA -Name '@' -Data @{ flags = 0; tag = 'issue';     value = $ca }
+    Set-DnsRecord -Type CAA -Name '@' -Data @{ flags = 0; tag = 'issuewild'; value = $ca }
   }
   Warn "verify with: nslookup -type=CAA $Domain"
 }
