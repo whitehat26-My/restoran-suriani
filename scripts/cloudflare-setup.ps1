@@ -414,30 +414,47 @@ function Phase-Hold {
 }
 
 function Phase-Verify {
+  # Every section is independently guarded. verify is a diagnostic, and a
+  # token that is missing one permission should still tell you everything
+  # else -- an under-scoped token is exactly when you most need the report.
+  $missing = @()
+
   Step "current state"
   foreach ($s in 'ssl','min_tls_version','tls_1_3','always_use_https',
                  'automatic_https_rewrites','opportunistic_encryption',
                  'browser_check','security_level') {
-    $v = (Invoke-CF GET "/zones/$Zone/settings/$s").result.value
-    Say ("{0,-28} {1}" -f $s, $v)
+    try {
+      $v = (Invoke-CF GET "/zones/$Zone/settings/$s" -Quiet).result.value
+      Say ("{0,-28} {1}" -f $s, $v)
+    } catch {
+      Say ("{0,-28} ? (no permission)" -f $s); $missing += 'Zone Settings: Edit'
+    }
   }
 
-  $h = (Invoke-CF GET "/zones/$Zone/settings/security_header").result.value.strict_transport_security
-  Say ("{0,-28} enabled={1} max_age={2} subdomains={3} preload={4}" -f 'hsts', $h.enabled, $h.max_age, $h.include_subdomains, $h.preload)
+  try {
+    $h = (Invoke-CF GET "/zones/$Zone/settings/security_header" -Quiet).result.value.strict_transport_security
+    Say ("{0,-28} enabled={1} max_age={2} subdomains={3} preload={4}" -f 'hsts', $h.enabled, $h.max_age, $h.include_subdomains, $h.preload)
+  } catch { Say ("{0,-28} ? (no permission)" -f 'hsts'); $missing += 'Zone Settings: Edit' }
 
   try {
-    $b = (Invoke-CF GET "/zones/$Zone/bot_management").result.fight_mode
+    $b = (Invoke-CF GET "/zones/$Zone/bot_management" -Quiet).result.fight_mode
     Say ("{0,-28} {1}" -f 'bot fight mode', $b)
-  } catch { Say ("{0,-28} n/a" -f 'bot fight mode') }
+  } catch { Say ("{0,-28} ? (no permission)" -f 'bot fight mode'); $missing += 'Bot Management: Edit' }
 
-  $cert = ((Invoke-CF GET "/zones/$Zone/ssl/certificate_packs?status=all").result |
-           Where-Object { $_.type -eq 'universal' } | Select-Object -First 1).status
-  Say ("{0,-28} {1}" -f 'certificate', $cert)
+  try {
+    $cert = ((Invoke-CF GET "/zones/$Zone/ssl/certificate_packs?status=all" -Quiet).result |
+             Where-Object { $_.type -eq 'universal' } | Select-Object -First 1).status
+    Say ("{0,-28} {1}" -f 'certificate', $cert)
+  } catch { Say ("{0,-28} ? (no permission)" -f 'certificate'); $missing += 'SSL and Certificates: Edit' }
 
   Step "DNS"
-  (Invoke-CF GET "/zones/$Zone/dns_records?per_page=100").result |
-    Sort-Object type, name |
-    ForEach-Object { Say ("{0,-6} {1,-34} {2}  proxied={3}" -f $_.type, $_.name, $_.content, $_.proxied) }
+  try {
+    $recs = (Invoke-CF GET "/zones/$Zone/dns_records?per_page=100" -Quiet).result
+    if ($recs) {
+      $recs | Sort-Object type, name |
+        ForEach-Object { Say ("{0,-6} {1,-34} {2}  proxied={3}" -f $_.type, $_.name, $_.content, $_.proxied) }
+    } else { Say "(no records)" }
+  } catch { Say "? (no permission)"; $missing += 'DNS: Edit' }
 
   Step "rulesets"
   foreach ($p in 'http_request_firewall_custom','http_ratelimit','http_request_dynamic_redirect') {
@@ -446,7 +463,15 @@ function Phase-Verify {
       $rules = (Invoke-CF GET "/zones/$Zone/rulesets/phases/$p/entrypoint" -Quiet).result.rules
       if ($rules) { $rules | ForEach-Object { Say "    - $($_.description) [$($_.action)]" } }
       else { Say "    (none)" }
-    } catch { Say "    (none)" }
+    } catch { Say "    (none, or no permission)" }
+  }
+
+  if ($missing.Count) {
+    Step "token is missing permissions"
+    $missing | Sort-Object -Unique | ForEach-Object { Warn "Zone -> $_" }
+    Warn ""
+    Warn "Add them without changing the token value:"
+    Warn "  dash.cloudflare.com -> profile -> API Tokens -> the token -> ... -> Edit"
   }
 }
 
