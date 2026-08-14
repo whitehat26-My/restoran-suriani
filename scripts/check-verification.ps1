@@ -17,7 +17,12 @@
 
 param(
   [string]$Domain = 'suriani.rest',
-  [string]$Token  = '32TdlL1zwr4yjvpR2Qi6vtohPLOQ4MPaTSAkqbSQWdg'
+
+  # Google issues a DIFFERENT token per method. The meta tag and the HTML
+  # file do not share one, so deriving the filename from $Token builds a URL
+  # that was never meant to exist and reports a 404 that means nothing.
+  [string]$Token     = '32TdlL1zwr4yjvpR2Qi6vtohPLOQ4MPaTSAkqbSQWdg',
+  [string]$FileToken = 'google7383adf7d4950d30'
 )
 
 try {
@@ -134,18 +139,32 @@ if ($g.Code -eq 200) {
 $ray = HeaderOf $g 'cf-ray'
 if ($ray) { Note "cf-ray: $ray (proves the response came from Cloudflare)" }
 
+# A stale edge copy looks exactly like a deploy that never ran, so rule it out
+# rather than reasoning about it.
+$cache = HeaderOf $page 'cf-cache-status'
+$cc    = HeaderOf $page 'cache-control'
+$age   = HeaderOf $page 'age'
+if ($cache) { Note "cf-cache-status: $cache" }
+if ($cc)    { Note "cache-control:   $cc" }
+if ($age)   { Note "age:             $age seconds" }
+if ($cache -match 'HIT') {
+  Note "Served from cache. Purge it: Cloudflare -> Caching -> Configuration"
+  Note "-> Purge Everything, then re-run this script."
+}
+
 # --- 3. the HTML file method ------------------------------------------------
 Head "3. the HTML file method, as a fallback"
-$f = Fetch "https://$Domain/google$Token.html"
+$f = Fetch "https://$Domain/$FileToken.html"
 if ($f.Code -eq 200) {
-  Ok "/google$Token.html returns 200"
+  Ok "/$FileToken.html returns 200"
 } elseif ($f.Code -eq 307 -or $f.Code -eq 301 -or $f.Code -eq 302) {
   $loc = HeaderOf $f 'location'
-  Ok "/google$Token.html returns $($f.Code) -> $loc"
+  Ok "/$FileToken.html returns $($f.Code) -> $loc"
   Note "A redirect is expected here and Google follows it. Not a fault."
 } else {
-  Bad "/google$Token.html returns $($f.Code)"
-  Note "Use the meta tag method instead; it is served from '/' which always exists."
+  Bad "/$FileToken.html returns $($f.Code)"
+  Note "This file is committed at public/$FileToken.html, so a 404 here is the"
+  Note "same missing deploy reported in section 1, not a separate problem."
 }
 
 # --- 4. DNS TXT, for a Domain property --------------------------------------
@@ -166,12 +185,26 @@ try {
     Note "it will not verify -- a Domain property accepts no other method."
   } else {
     foreach ($v in $verif) {
-      $d = "$($v.data)".Trim('"')
+      $d   = "$($v.data)".Trim('"')
+      $val = ($d -replace '^\s*google-site-verification\s*=\s*', '')
+
       if ($d -match 'abc123|xyz|example|placeholder') {
         Bad "placeholder TXT record still published: $d"
         Note "Delete it in Cloudflare -> DNS. It verifies nothing and is confusing."
+
+      } elseif ($val.Length -lt 40) {
+        # A DNS token is ~43 characters of base64url. Anything much shorter is
+        # a token from a different method pasted into DNS -- most often the
+        # HTML file's, which is far shorter and looks plausible.
+        Bad "TXT record is not a valid DNS token: $d"
+        Note "A DNS token is about 43 characters; this one is $($val.Length)."
+        Note "This looks like the HTML file's token published as DNS by mistake."
+        Note "It will not verify a Domain property. Delete it, or replace it with"
+        Note "the token Search Console shows under the DNS method."
+
       } else {
         Ok "TXT: $d"
+        Note "length $($val.Length) -- plausible as a real DNS token"
       }
     }
   }
@@ -187,8 +220,20 @@ if ($tagFound -and $rightTok -and $g.Code -eq 200) {
   Write-Host "  (https://$Domain/), pick the 'HTML tag' method, and click Verify." -ForegroundColor Green
   Write-Host "  A 'Domain' property ignores the tag and needs the DNS method." -ForegroundColor Green
 } elseif (-not $tagFound) {
-  Write-Host "  Deploy first. Nothing in Search Console will work until the" -ForegroundColor Yellow
-  Write-Host "  tag appears in section 1 above." -ForegroundColor Yellow
+  Write-Host "  Nothing in Search Console will work until the tag appears in" -ForegroundColor Yellow
+  Write-Host "  section 1. The commit is on main, so the site is running an" -ForegroundColor Yellow
+  Write-Host "  older build than the repository." -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "  1. Cloudflare -> Workers & Pages -> restoran-suriani -> Deployments" -ForegroundColor Yellow
+  Write-Host "     Compare the newest deployment's commit against:" -ForegroundColor Yellow
+  Write-Host "       git log --oneline -1 origin/main" -ForegroundColor Yellow
+  Write-Host "     A failed or absent build is the answer; open it and read the log." -ForegroundColor Yellow
+  Write-Host ""
+  Write-Host "  2. Or bypass the git build entirely and push from here:" -ForegroundColor Yellow
+  Write-Host "       npx wrangler login" -ForegroundColor Yellow
+  Write-Host "       npx wrangler deploy" -ForegroundColor Yellow
+  Write-Host "     This uploads your local public/ directly. Run git pull first" -ForegroundColor Yellow
+  Write-Host "     so what you upload matches main." -ForegroundColor Yellow
 } else {
   Write-Host "  Fix whatever is marked [FAIL] above, then click Verify." -ForegroundColor Yellow
 }
