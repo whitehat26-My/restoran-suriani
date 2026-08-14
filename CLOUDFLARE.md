@@ -116,7 +116,7 @@ $env:CF_API_TOKEN = "..."
 .\scripts\cloudflare-setup.ps1 caa          # CAA records       (needs the cert)
 .\scripts\cloudflare-setup.ps1 waf          # firewall + rate limit + www redirect
 .\scripts\cloudflare-setup.ps1 bots         # Bot Fight Mode — then test, see below
-.\scripts\cloudflare-setup.ps1 hold         # anti-hijack zone hold
+.\scripts\cloudflare-setup.ps1 hold         # Enterprise only; reports and skips on Free
 .\scripts\cloudflare-setup.ps1 verify       # read-only report
 ```
 
@@ -137,7 +137,7 @@ export DOMAIN=suriani.rest
 ./scripts/cloudflare-setup.sh caa          # CAA records       (needs the cert)
 ./scripts/cloudflare-setup.sh waf          # firewall + rate limit + www redirect
 ./scripts/cloudflare-setup.sh bots         # Bot Fight Mode — then test, see below
-./scripts/cloudflare-setup.sh hold         # anti-hijack zone hold
+./scripts/cloudflare-setup.sh hold         # Enterprise only; reports and skips on Free
 ./scripts/cloudflare-setup.sh verify       # read-only report
 ```
 
@@ -254,7 +254,11 @@ Three constraints that trip up most guides:
   rules use `starts_with`/`ends_with`/`in` instead.
 - **Rate limiting counts documents, not requests.** One page load fires about a
   dozen requests, so an all-requests cap trips after a handful of page views.
-  Scoped to `/` and `*.html`, 60/minute per IP counts page views. It is
+  Scoped to `/` and `*.html`, the cap counts page views.
+- **The Free plan only permits a 10-second window.** Cloudflare answers
+  `not entitled to use the period 60, can only use a period among [10]`. The
+  script tries the widest window first and falls back, so it lands on 50 page
+  requests per 10 seconds per IP without needing the plan hard-coded. It is
   deliberately generous because Malaysian mobile carriers are heavily CGNAT'd —
   a whole neighbourhood of subscribers can share one IPv4 address. `cf.colo.id`
   is in the characteristics because the API rejects the rule without it on
@@ -294,8 +298,11 @@ real customers. Roll back with `{"fight_mode": false}` if either test fails.
   HSTS, no WAF, no rate limiting, no bot protection — and is duplicate content
   for Google. It must live in config: disabling it in the dashboard alone is
   silently undone by the next `wrangler deploy`.
-- **Zone hold.** Stops anyone adding `suriani.rest` to a different
-  Cloudflare account, which is a genuine domain-takeover vector.
+- **Zone hold — Enterprise only, so NOT available here.** It would stop anyone
+  adding `suriani.rest` to a different Cloudflare account. The API answers
+  `1005 Zone holds are only available on Enterprise zones`. On Free, the
+  equivalent protection is the registrar lock below, which covers the same
+  attack from the other end: nobody can move the domain in the first place.
 - **Registrar lock + auto-renew + verified registrant email.** Not glamorous,
   and the most common real-world cause of a small business losing its site.
 
@@ -329,7 +336,7 @@ and, if running from one place, **Client IP filtering**.
 | Zone | SSL and Certificates: Edit | Universal SSL, cert status |
 | Zone | Bot Management: Edit | Bot Fight Mode |
 | Zone | Dynamic URL Redirects: Edit | www→apex (**not** covered by Zone WAF) |
-| Zone | Zone: Edit | Zone hold only |
+| Zone | Zone: Edit | Zone hold only — Enterprise feature, so optional on Free |
 
 With Workers Builds you need **no deploy token at all** — Cloudflare generates
 and rotates one internally.
