@@ -28,9 +28,12 @@ function Check {
 }
 
 function Get-Head {
+  # -UseBasicParsing stops Windows PowerShell 5.1 handing the response to the
+  # legacy Internet Explorer DOM parser, which prompts "Script Execution Risk"
+  # on every call. It is the default on PowerShell 7 and accepted there too.
   param([string]$Url)
   try {
-    $r = Invoke-WebRequest -Uri $Url -Method Head -MaximumRedirection 0 -ErrorAction Stop
+    $r = Invoke-WebRequest -Uri $Url -Method Head -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
     return @{ Code = [int]$r.StatusCode; Headers = $r.Headers }
   } catch {
     $resp = $_.Exception.Response
