@@ -169,7 +169,19 @@ if ($caa) {
   }) -join ' | ')
 }
 if ($caaTxt -notmatch 'issue') {
-  try { $caaTxt = (nslookup -type=CAA $Domain 2>&1 | Out-String) } catch { }
+  # Windows nslookup does not know CAA by name -- it prints "unknown query
+  # type" and quietly falls back to an address lookup, which looks like a
+  # successful answer containing no CAA. DNS-over-HTTPS sidesteps the local
+  # resolver entirely and returns the records formatted, which is also closer
+  # to what a certificate authority actually sees.
+  try {
+    $doh = Invoke-RestMethod -Uri "https://dns.google/resolve?name=$Domain&type=CAA" `
+             -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+    if ($doh.Answer) { $caaTxt = ($doh.Answer | ForEach-Object { $_.data }) -join ' | ' }
+  } catch { }
+}
+if ($caaTxt -notmatch 'issue') {
+  try { $caaTxt = (nslookup -type=257 $Domain 2>&1 | Out-String) } catch { }
 }
 
 if ($caaTxt -match 'issue') {
@@ -178,7 +190,7 @@ if ($caaTxt -match 'issue') {
 } else {
   Write-Host "  [--]   CAA could not be read by this resolver -- not necessarily missing." -ForegroundColor Yellow
   Write-Host "         Windows support for CAA lookups is inconsistent. Confirm with:" -ForegroundColor Yellow
-  Write-Host "           https://dnsviz.net/d/$Domain/dnssec/  or  nslookup -type=CAA $Domain 8.8.8.8" -ForegroundColor Yellow
+  Write-Host "           curl.exe -sS `"https://dns.google/resolve?name=$Domain&type=CAA`"" -ForegroundColor Yellow
 }
 
 # --- summary ----------------------------------------------------------------
