@@ -64,11 +64,10 @@ The site swaps the drawn illustration for the photo and removes the
 cached for 30 days, so overwriting `interior.jpg` in place leaves returning
 visitors on the old image.
 
-## Delivery platform links — on hold
+## Delivery platform links
 
-**Currently parked at your request.** Nothing renders and nothing is broken:
-the buttons only appear once a URL is filled in, so the site simply does not
-mention delivery today. Pick this up whenever you are ready.
+foodpanda is live. GrabFood is still parked — its button simply does not
+render while the URL is empty, so nothing is broken by the gap.
 
 `public/script.js` has a `DELIVERY` array near the top:
 
@@ -188,7 +187,8 @@ npx wrangler deploy
 
 ## Still needs your input
 
-1. ~~Delivery store URLs for foodpanda and GrabFood~~ — **on hold.**
+1. **GrabFood store URL** — foodpanda is done; Grab's button appears once its
+   URL is filled in.
 2. **A few menu prices could not be read** from the scanned menu boards (faded
    or torn price stickers). These show "Sila tanya / Ask staff" rather than a
    guessed price. Search `menu-data.js` for `priceNote` — they are marked

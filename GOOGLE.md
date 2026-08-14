@@ -105,8 +105,9 @@ filling the frame.
 - Add the **menu link**: `https://suriani.rest/#menu`
 - Ask regulars to leave reviews, and reply to every one. Reply rate is a
   visible signal to customers and a modest ranking factor.
-- foodpanda / GrabFood "Ordering links" are **on hold** — pick this up whenever
-  you are ready.
+- Add the foodpanda store under **Ordering links**:
+  `https://www.foodpanda.my/ms/restaurant/r2qc/restoran-suriani-jalan-imbi`
+  GrabFood once you have its URL.
 
 ---
 
@@ -171,7 +172,7 @@ npm i -D playwright && node scripts/make-images.mjs
 2. **Decide on the "Halal restaurant" category** — my recommendation is to
    leave it off without a JAKIM certificate.
 3. **Food photos.** The biggest single improvement available to you.
-4. ~~**foodpanda and GrabFood URLs**~~ — **on hold.** They would go in `public/script.js`, in the
+4. **GrabFood URL** — foodpanda is done. Grab's goes in `public/script.js`, in the
    JSON-LD `sameAs` array, and in the Business Profile ordering links.
 5. **Confirm the exact map pin location.** I deliberately left `geo`
    coordinates out of the structured data rather than guessing them — a wrong
