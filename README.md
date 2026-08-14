@@ -4,7 +4,7 @@ A bilingual (Bahasa Melayu / English) website for Restoran Suriani, Pudu,
 Kuala Lumpur, with a tap-to-view digital menu built from the restaurant's real
 menu boards.
 
-Live at **https://restoransuriani.com** — hosted on Cloudflare Workers static
+Live at **https://suriani.rest** — hosted on Cloudflare Workers static
 assets.
 
 - [CLOUDFLARE.md](CLOUDFLARE.md) — domain, DNS, TLS and security setup
@@ -64,7 +64,11 @@ The site swaps the drawn illustration for the photo and removes the
 cached for 30 days, so overwriting `interior.jpg` in place leaves returning
 visitors on the old image.
 
-## Delivery platform links
+## Delivery platform links — on hold
+
+**Currently parked at your request.** Nothing renders and nothing is broken:
+the buttons only appear once a URL is filled in, so the site simply does not
+mention delivery today. Pick this up whenever you are ready.
 
 `public/script.js` has a `DELIVERY` array near the top:
 
@@ -149,7 +153,7 @@ npx wrangler deploy
 
 ## Still needs your input
 
-1. **Delivery store URLs** for foodpanda and GrabFood (see above).
+1. ~~Delivery store URLs for foodpanda and GrabFood~~ — **on hold.**
 2. **A few menu prices could not be read** from the scanned menu boards (faded
    or torn price stickers). These show "Sila tanya / Ask staff" rather than a
    guessed price. Search `menu-data.js` for `priceNote` — they are marked

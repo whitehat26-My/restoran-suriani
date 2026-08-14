@@ -33,7 +33,7 @@
 
 set -euo pipefail
 
-DOMAIN="${DOMAIN:-restoransuriani.com}"
+DOMAIN="${DOMAIN:-suriani.rest}"
 API="https://api.cloudflare.com/client/v4"
 
 # --------------------------------------------------------------------------
@@ -225,7 +225,7 @@ phase_caa() {
   # and Cloudflare may rotate between them, so all three must be authorised.
   #
   # issuewild is NOT optional: the Universal SSL certificate carries a
-  # *.restoransuriani.com SAN, and a CAA set with issue but no issuewild
+  # *.suriani.rest SAN, and a CAA set with issue but no issuewild
   # blocks issuance with "CAA records block issuance".
   #
   # This phase is additive only. Cloudflare maintains its own CAA entries for
@@ -390,7 +390,7 @@ phase_search_console() {
 
 phase_hold() {
   step "zone hold"
-  # Stops anyone else adding restoransuriani.com to a different Cloudflare
+  # Stops anyone else adding suriani.rest to a different Cloudflare
   # account, which is a real domain-takeover vector.
   cf POST "/zones/$ZONE/hold?include_subdomains=true" >/dev/null
   ok "zone hold enabled"

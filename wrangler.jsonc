@@ -50,7 +50,7 @@
   // Uncomment once scripts/cloudflare-setup.sh reports the zone is live.
   //
   // "routes": [
-  //   { "pattern": "restoransuriani.com", "custom_domain": true }
+  //   { "pattern": "suriani.rest", "custom_domain": true }
   // ],
 
   "observability": {

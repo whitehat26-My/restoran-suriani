@@ -30,7 +30,7 @@ What I have done is everything up to that line — the images sized to Google's
 specs, the structured data, the DNS verification tooling, and the exact steps
 below. The parts left for you take about twenty minutes.
 
-**Prerequisite:** steps 2 and 3 below need `restoransuriani.com` registered and
+**Prerequisite:** steps 2 and 3 below need `suriani.rest` registered and
 deployed first (see `CLOUDFLARE.md`). Step 1 does not — you can claim the
 Business Profile today, and add the website link later.
 
@@ -61,7 +61,7 @@ Inconsistencies weaken local ranking, so copy these verbatim:
 | Name | `Restoran Suriani` |
 | Address | `28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur` |
 | Phone | `03-9226 1408` |
-| Website | `https://restoransuriani.com` |
+| Website | `https://suriani.rest` |
 | Primary category | **Malaysian restaurant** |
 | Secondary categories | Halal restaurant *(see the caveat below)*, Hainanese restaurant, Restaurant |
 | Hours | **Open 24 hours**, all seven days |
@@ -102,11 +102,11 @@ filling the frame.
 
 - Turn on **messaging** only if someone will actually watch it. An ignored
   Google message channel is worse than none — you already have WhatsApp.
-- Add the **menu link**: `https://restoransuriani.com/#menu`
+- Add the **menu link**: `https://suriani.rest/#menu`
 - Ask regulars to leave reviews, and reply to every one. Reply rate is a
   visible signal to customers and a modest ranking factor.
-- Add the foodpanda and GrabFood links under "Ordering links" once you send me
-  those URLs for the website.
+- foodpanda / GrabFood "Ordering links" are **on hold** — pick this up whenever
+  you are ready.
 
 ---
 
@@ -117,7 +117,7 @@ Needs the domain registered and the site deployed.
 1. <https://search.google.com/search-console> → **Add property** → choose
    **Domain** (not "URL prefix" — Domain covers apex, `www` and every
    subdomain at once, and cannot be broken by a redeploy).
-2. Enter `restoransuriani.com`. Google shows a TXT record like
+2. Enter `suriani.rest`. Google shows a TXT record like
    `google-site-verification=abc123…`.
 3. Publish it with the token part only:
    ```sh
@@ -125,7 +125,7 @@ Needs the domain registered and the site deployed.
    ```
 4. Click **Verify** in Search Console. DNS can take a few minutes.
 5. **Sitemaps** → submit `sitemap.xml`.
-6. **URL Inspection** → paste `https://restoransuriani.com/` → **Request
+6. **URL Inspection** → paste `https://suriani.rest/` → **Request
    indexing**.
 
 Leave that verification TXT record published — Google re-checks it, and
@@ -171,7 +171,7 @@ npm i -D playwright && node scripts/make-images.mjs
 2. **Decide on the "Halal restaurant" category** — my recommendation is to
    leave it off without a JAKIM certificate.
 3. **Food photos.** The biggest single improvement available to you.
-4. **foodpanda and GrabFood URLs** — they go in `public/script.js`, in the
+4. ~~**foodpanda and GrabFood URLs**~~ — **on hold.** They would go in `public/script.js`, in the
    JSON-LD `sameAs` array, and in the Business Profile ordering links.
 5. **Confirm the exact map pin location.** I deliberately left `geo`
    coordinates out of the structured data rather than guessing them — a wrong

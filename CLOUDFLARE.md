@@ -1,4 +1,4 @@
-# Domain, hosting and security — restoransuriani.com
+# Domain, hosting and security — suriani.rest
 
 Everything here is reproducible from the repo. `scripts/cloudflare-setup.sh`
 applies the zone configuration through the Cloudflare API; the only steps that
@@ -27,24 +27,46 @@ can be served, whatever anyone adds later.
 
 Several steps break things if run early. Do them in this order.
 
-### Phase 1 — register the domain 🧑 *needs you*
+### Phase 1 — put the domain on Cloudflare 🧑 *needs you*
 
-1. Cloudflare dashboard → **Domain Registration** → search `restoransuriani.com`
-   → add a payment card → register. `.com` is sold at cost (roughly USD 10–11/yr)
-   with free WHOIS privacy.
-   - Newer alternative: from the Worker's **Domains** tab you can buy the domain
-     and have it auto-connected to the Worker in one step.
-   - The Registrar API went to beta in April 2026 and can search, check
-     availability and register — but for a one-off purchase with a card, use
-     the dashboard.
-2. **Verify the registrant email.** ICANN suspends unverified domains after 15
-   days. Use an address the owner actually reads.
-3. Turn on **auto-renew** and **registrar lock**. A lapsed `.com` is caught by
-   drop-catchers within hours — this is the single most common way a small
-   business loses its website.
-4. Note the **Zone ID** and **Account ID** from the dashboard overview.
-5. Delete any placeholder DNS records Cloudflare created at the apex. A Workers
-   Custom Domain cannot attach to a hostname that already has a CNAME.
+`suriani.rest` is already registered. What is left is pointing it at Cloudflare
+so the zone exists — everything in Phase 4 operates on that zone.
+
+**If you registered it somewhere other than Cloudflare** (most likely, as
+Cloudflare Registrar does not sell every TLD):
+
+1. Cloudflare dashboard → **Add a domain** → enter `suriani.rest` → choose the
+   **Free** plan. Cloudflare scans for existing DNS records; there should be
+   none worth keeping on a fresh domain.
+2. Cloudflare shows **two nameservers** (like `xxx.ns.cloudflare.com`). Go to
+   the registrar where you bought the domain, find the nameserver / DNS
+   settings, and **replace** its nameservers with Cloudflare's two. Replace,
+   not add — leaving the registrar's own nameservers alongside causes
+   intermittent, maddening resolution failures.
+3. Wait for the zone status to go **Active**. Usually minutes; the registry can
+   take up to 24 hours. Nothing else works until it does.
+
+**If you did register it through Cloudflare**, the zone already exists and you
+can skip straight to step 4.
+
+Then, either way:
+
+4. Turn on **auto-renew** and **registrar lock** at whichever registrar holds
+   the domain. A lapsed domain is caught by drop-catchers within hours — the
+   single most common way a small business loses its website.
+5. **Verify the registrant email.** ICANN suspends unverified domains after 15
+   days. Use an address someone actually reads.
+6. Note the **Zone ID** and **Account ID** from the Cloudflare dashboard
+   overview — the setup script needs them.
+7. Delete any placeholder DNS records at the apex. A Workers Custom Domain
+   cannot attach to a hostname that already has a CNAME.
+
+> **Note on `.rest`** — it behaves like any other gTLD for DNS, certificates
+> and HSTS preload, so nothing in this setup changes. The one practical
+> difference is that some older apps and spam filters do not recognise newer
+> TLDs in bare text, so `suriani.rest` may not auto-link where
+> `example.com` would. Write it as `https://suriani.rest` on printed material,
+> receipts and social profiles and it will link everywhere.
 
 ### Phase 2 — connect the repo 🧑 *needs you*
 
@@ -82,7 +104,7 @@ Create a scoped API token first (permissions below), then:
 
 ```sh
 export CF_API_TOKEN=...
-export DOMAIN=restoransuriani.com
+export DOMAIN=suriani.rest
 
 ./scripts/cloudflare-setup.sh dns-www      # proxied www placeholder (A + AAAA)
 ./scripts/cloudflare-setup.sh dns-email    # null MX, SPF, DMARC, null DKIM
@@ -132,7 +154,7 @@ export DOMAIN=restoransuriani.com
 
 The restaurant uses WhatsApp and sends no email, so the domain publishes a
 complete "nobody may send as us" posture. Without these records anyone can
-forge `owner@restoransuriani.com` — a real and cheap attack against a business
+forge `owner@suriani.rest` — a real and cheap attack against a business
 that takes catering bookings.
 
 No `rua=`/`ruf=` on the DMARC record: they have no mailbox to receive reports,
@@ -141,7 +163,7 @@ and an unreachable report address is worse than none.
 **CAA needs all three CAs, in both `issue` and `issuewild`.** Cloudflare's
 Universal SSL partners are Let's Encrypt, Google Trust Services and SSL.com,
 and on Free you cannot pin which is used — Cloudflare may rotate. The
-certificate also carries a `*.restoransuriani.com` SAN, so `issue` without
+certificate also carries a `*.suriani.rest` SAN, so `issue` without
 `issuewild` blocks issuance outright. The `caa` phase is **additive only**: it
 never deletes CAA records, because Cloudflare maintains its own and removing
 them breaks renewal.
@@ -232,7 +254,7 @@ Events are what make a genuine incident visible.
 
 Bot Fight Mode is on, but **verify both of these straight away**:
 
-1. Paste `https://restoransuriani.com` into a WhatsApp chat — the preview card
+1. Paste `https://suriani.rest` into a WhatsApp chat — the preview card
    must render.
 2. Search Console → URL Inspection → Test Live URL — must succeed.
 
@@ -249,7 +271,7 @@ real customers. Roll back with `{"fight_mode": false}` if either test fails.
   HSTS, no WAF, no rate limiting, no bot protection — and is duplicate content
   for Google. It must live in config: disabling it in the dashboard alone is
   silently undone by the next `wrangler deploy`.
-- **Zone hold.** Stops anyone adding `restoransuriani.com` to a different
+- **Zone hold.** Stops anyone adding `suriani.rest` to a different
   Cloudflare account, which is a genuine domain-takeover vector.
 - **Registrar lock + auto-renew + verified registrant email.** Not glamorous,
   and the most common real-world cause of a small business losing its site.
@@ -272,7 +294,7 @@ real customers. Roll back with `{"fight_mode": false}` if either test fails.
 ## API token permissions
 
 Create at **My Profile → API Tokens → Create Custom Token**. Scope every zone
-permission to `restoransuriani.com` alone — never "All zones". Set a **TTL**
+permission to `suriani.rest` alone — never "All zones". Set a **TTL**
 and, if running from one place, **Client IP filtering**.
 
 | Scope | Permission | Needed for |
@@ -294,7 +316,7 @@ and rotates one internally.
 ## Verification
 
 ```sh
-D=restoransuriani.com
+D=suriani.rest
 
 # DNS
 dig +short NS $D                      # two *.ns.cloudflare.com
