@@ -115,22 +115,81 @@ filling the frame.
 
 Needs the domain registered and the site deployed.
 
-1. <https://search.google.com/search-console> → **Add property** → choose
-   **Domain** (not "URL prefix" — Domain covers apex, `www` and every
-   subdomain at once, and cannot be broken by a redeploy).
-2. Enter `suriani.rest`. Google shows a TXT record like
-   `google-site-verification=abc123…`.
-3. Publish it with the token part only:
-   ```sh
-   ./scripts/cloudflare-setup.sh search-console abc123...
-   ```
-4. Click **Verify** in Search Console. DNS can take a few minutes.
-5. **Sitemaps** → submit `sitemap.xml`.
-6. **URL Inspection** → paste `https://suriani.rest/` → **Request
-   indexing**.
+### How this site is verified
 
-Leave that verification TXT record published — Google re-checks it, and
-removing it un-verifies the property.
+Ownership is proved by a **meta tag on the homepage**, in
+`public/index.html`:
+
+```html
+<meta name="google-site-verification" content="32TdlL1zwr4yjvpR2Qi6vtohPLOQ4MPaTSAkqbSQWdg">
+```
+
+**Do not remove it.** Google re-checks the tag periodically and un-verifies
+the property if it disappears. It costs nothing to keep.
+
+The tag is served from `/`, which is the one path guaranteed to return `200`,
+so this method has the fewest moving parts. Whichever method you use, the
+token is *not* a secret — it proves you control the site, and it is public by
+design.
+
+### The two other methods, and their traps
+
+Google offers three methods. All are equivalent to Google; they differ in what
+can silently break them.
+
+| Method | Where it lives | Watch out for |
+|---|---|---|
+| **HTML tag** ← in use | `public/index.html` | Nothing. Served from `/`. |
+| HTML file | `public/google<token>.html` | Must be inside `public/`, and the filename must match exactly |
+| DNS TXT | Cloudflare DNS | Only method that works for a **Domain** property |
+
+The HTML **file** method has bitten this project twice, both times for the
+same underlying reason — the file existed, but not at the URL Google fetches:
+
+- Downloading the file twice makes the browser name the second copy
+  `google<token> (4).html`. That space and `(4)` are part of the filename, so
+  it no longer matches the path Google requests.
+- Putting it in the repository root does nothing. Only `public/` is published
+  — see [CLOUDFLARE.md](CLOUDFLARE.md#why-the-site-lives-in-public). The repo
+  root and the site root are not the same place.
+
+A copy is kept at `public/google7383adf7d4950d30.html` as a second proof. Note
+that `html_handling: "auto-trailing-slash"` in `wrangler.jsonc` makes
+`/google7383adf7d4950d30.html` answer **307 → `/google7383adf7d4950d30`**
+rather than `200` directly. That is a redirect, not a failure, and Google
+follows it.
+
+### Steps
+
+1. <https://search.google.com/search-console> → **Add property**.
+   - **URL prefix** (`https://suriani.rest/`) works with the meta tag above.
+   - **Domain** (`suriani.rest`) covers apex, `www` and every subdomain at
+     once and cannot be broken by a redeploy — but it accepts **only** the DNS
+     TXT method.
+2. For a Domain property, Google shows a TXT record like
+   `google-site-verification=abc123…`. Publish the token part only:
+   ```sh
+   ./scripts/cloudflare-setup.sh search-console <token>
+   ```
+   The script rejects obvious placeholder strings, because pasting the
+   documentation's own example into it publishes a junk record that verifies
+   nothing.
+3. Click **Verify**. DNS can take a few minutes; the meta tag is immediate
+   once deployed.
+4. **Sitemaps** → submit `sitemap.xml`.
+5. **URL Inspection** → paste `https://suriani.rest/` → **Request indexing**.
+
+### If verification fails
+
+Check the proof is actually live before touching anything in Search Console —
+a deploy that has not finished looks exactly like a wrong token:
+
+```powershell
+curl.exe -sS https://suriani.rest/ | findstr /i "google-site-verification"
+```
+
+Nothing printed means the change has not deployed yet. Only `main` deploys —
+a commit sitting on a branch changes nothing on the live site.
 
 ### Then check two things
 
