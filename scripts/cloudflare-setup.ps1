@@ -1,10 +1,10 @@
-<#
+﻿<#
 .SYNOPSIS
-  Restoran Suriani — Cloudflare zone configuration as code, for Windows.
+  Restoran Suriani -- Cloudflare zone configuration as code, for Windows.
 
 .DESCRIPTION
   A native PowerShell port of scripts/cloudflare-setup.sh. Same phases, same
-  order, same behaviour — but no bash, no jq, no WSL. Everything it needs is
+  order, same behaviour -- but no bash, no jq, no WSL. Everything it needs is
   built into PowerShell 5.1 and later.
 
   Idempotent: every phase converges to the same state on re-run. Scalar
@@ -14,13 +14,13 @@
   Run the phases IN ORDER. Several break things if run early:
 
     1. dns-www    proxied www placeholders (the redirect rule needs them)
-    2. dns-email  anti-spoofing — null MX, SPF, DMARC, null DKIM
+    2. dns-email  anti-spoofing -- null MX, SPF, DMARC, null DKIM
     3. tls        SSL mode, TLS versions, HTTPS rewrites  (NOT always-https)
     4. wait-cert  block until Universal SSL is active
     5. https-on   always_use_https                        (needs step 4)
     6. caa        CAA records                             (needs step 4)
     7. waf        firewall rules + rate limiting + www->apex redirect
-    8. bots       Bot Fight Mode — then TEST WHATSAPP PREVIEWS
+    8. bots       Bot Fight Mode -- then TEST WHATSAPP PREVIEWS
     9. hsts 1|2|3 staged rollout, days apart
    10. hold       zone hold (anti-hijack)
        search-console <token>   Google Search Console DNS verification
@@ -44,7 +44,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $Domain = if ($env:DOMAIN) { $env:DOMAIN } else { 'suriani.rest' }
-$Api    = 'https://api.cloudflare.com/client/v4'
+# CF_API_BASE exists so this can be pointed at a mock server for testing.
+$Api    = if ($env:CF_API_BASE) { $env:CF_API_BASE } else { 'https://api.cloudflare.com/client/v4' }
+
+# Windows PowerShell 5.1 inherits .NET's default protocol selection, which on
+# some machines still excludes TLS 1.2. Cloudflare's API refuses anything
+# older, and the resulting error says nothing useful about why.
+try {
+  [Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch { }
 
 # --------------------------------------------------------------------------
 # Plumbing
@@ -57,7 +66,10 @@ function Step ($m) { Write-Host "`n== $m"     -ForegroundColor DarkGray }
 function Die  ($m) { Write-Host "error: $m"   -ForegroundColor Red; exit 1 }
 
 function Invoke-CF {
-  param([string]$Method, [string]$Path, $Body)
+  # -Quiet suppresses the error print for calls where a 4xx is an expected
+  # answer rather than a fault -- reading a ruleset phase that has no rules
+  # yet returns 404, and printing that looks alarming in a verify report.
+  param([string]$Method, [string]$Path, $Body, [switch]$Quiet)
 
   $headers = @{ Authorization = "Bearer $($env:CF_API_TOKEN)" }
   $params  = @{
@@ -73,12 +85,19 @@ function Invoke-CF {
   try {
     $r = Invoke-RestMethod @params
   } catch {
-    # Cloudflare returns useful JSON even on 4xx — surface it rather than
-    # letting PowerShell print a bare status code.
-    $resp = $_.Exception.Response
-    if ($resp) {
-      $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
-      $raw = $reader.ReadToEnd()
+    # Cloudflare returns useful JSON even on 4xx -- surface it rather than
+    # letting PowerShell print a bare status code. The body is read differently
+    # on 5.1 (WebException) and 7 (HttpResponseMessage), so try both.
+    $raw = $null
+    if ($_.ErrorDetails -and $_.ErrorDetails.Message) {
+      $raw = $_.ErrorDetails.Message
+    } elseif ($_.Exception.Response -and $_.Exception.Response.GetResponseStream) {
+      try {
+        $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+        $raw = $reader.ReadToEnd()
+      } catch { }
+    }
+    if ($raw -and -not $Quiet) {
       try {
         $j = $raw | ConvertFrom-Json
         foreach ($e in $j.errors) { Write-Host "  [$($e.code)] $($e.message)" -ForegroundColor Red }
@@ -88,7 +107,7 @@ function Invoke-CF {
   }
 
   if (-not $r.success) {
-    foreach ($e in $r.errors) { Write-Host "  [$($e.code)] $($e.message)" -ForegroundColor Red }
+    if (-not $Quiet) { foreach ($e in $r.errors) { Write-Host "  [$($e.code)] $($e.message)" -ForegroundColor Red } }
     throw "API call failed: $Method $Path"
   }
   return $r
@@ -98,7 +117,7 @@ function Resolve-Zone {
   if ($env:CF_ZONE_ID) { return $env:CF_ZONE_ID }
   $r = Invoke-CF GET "/zones?name=$Domain"
   if (-not $r.result -or $r.result.Count -eq 0) {
-    Die "zone '$Domain' not found — check the token is scoped to this zone"
+    Die "zone '$Domain' not found -- check the token is scoped to this zone"
   }
   return $r.result[0].id
 }
@@ -130,12 +149,12 @@ function Set-DnsRecord {
 
   $existing = (Invoke-CF GET "/zones/$Zone/dns_records?type=$Type&name=$fqdn").result
 
-  # Exact match already present — nothing to do.
+  # Exact match already present -- nothing to do.
   if ($existing | Where-Object { $_.content -eq $Content }) {
     Ok "$Type $fqdn already set"; return
   }
 
-  # Same (type,name) but different content: update rather than duplicate —
+  # Same (type,name) but different content: update rather than duplicate --
   # except TXT and CAA, where multiple values on one name are meaningful.
   if ($Type -ne 'TXT' -and $Type -ne 'CAA' -and $existing.Count -gt 0) {
     Invoke-CF PATCH "/zones/$Zone/dns_records/$($existing[0].id)" $body | Out-Null
@@ -153,7 +172,7 @@ function Set-DnsRecord {
 function Phase-DnsWww {
   Step "www placeholder records"
   # The site is served from a Workers Custom Domain on the apex. www needs no
-  # origin — only to be proxied, so the zone redirect rule can intercept it.
+  # origin -- only to be proxied, so the zone redirect rule can intercept it.
   # 192.0.2.0 (TEST-NET-1) and 100:: (discard prefix) are reserved for exactly
   # this. Both are required: with only an A record, IPv6-only clients get
   # NXDOMAIN for www, which also fails the HSTS preload check.
@@ -164,16 +183,16 @@ function Phase-DnsWww {
 function Phase-DnsEmail {
   Step "anti-spoofing DNS (this domain sends and receives no mail)"
 
-  # RFC 7505 null MX — "accepts no mail", rejected at connection time.
+  # RFC 7505 null MX -- "accepts no mail", rejected at connection time.
   try { Set-DnsRecord -Type MX -Name '@' -Content '.' -Priority 0 }
-  catch { Warn "null MX rejected — SPF -all and DMARC p=reject still block spoofing" }
+  catch { Warn "null MX rejected -- SPF -all and DMARC p=reject still block spoofing" }
 
   # Hard-fail SPF: no host on earth is authorised to send as this domain.
   Set-DnsRecord -Type TXT -Name '@' -Content 'v=spf1 -all'
   Set-DnsRecord -Type TXT -Name '*' -Content 'v=spf1 -all'
 
   # sp=reject because p=reject alone leaves subdomains ambiguous in some
-  # receivers. No rua=/ruf= — there is no mailbox to receive reports, and an
+  # receivers. No rua=/ruf= -- there is no mailbox to receive reports, and an
   # unreachable report address is worse than none.
   Set-DnsRecord -Type TXT -Name '_dmarc' -Content 'v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; pct=100'
 
@@ -193,7 +212,7 @@ function Phase-Tls {
   Set-Setting automatic_https_rewrites 'on'
   Set-Setting browser_check            'on'
 
-  # "medium", not "high". Malaysian mobile networks are heavily CGNAT'd — one
+  # "medium", not "high". Malaysian mobile networks are heavily CGNAT'd -- one
   # bad actor behind a carrier IP raises that IP's score, and "high" would
   # start challenging real customers trying to read the menu.
   Set-Setting security_level 'medium'
@@ -214,7 +233,7 @@ function Phase-WaitCert {
     Write-Host "  ... $status ($i/60)`r" -NoNewline
     Start-Sleep -Seconds 10
   }
-  Die "certificate did not become active — do NOT run https-on or caa yet"
+  Die "certificate did not become active -- do NOT run https-on or caa yet"
 }
 
 function Phase-HttpsOn {
@@ -246,7 +265,7 @@ function Phase-Waf {
   Step "WAF custom rules"
 
   # Every expression uses starts_with/ends_with/in rather than regex. The
-  # `matches` operator is Business plan and above — any recipe using regex is
+  # `matches` operator is Business plan and above -- any recipe using regex is
   # simply rejected on Free.
   #
   # The /.well-known/ exclusion is load-bearing: Cloudflare uses HTTP DCV at
@@ -271,7 +290,7 @@ function Phase-Waf {
          expression = '(not http.request.method in {"GET" "HEAD" "OPTIONS"})' }
     )
   } | Out-Null
-  Ok "2 custom rules deployed (Free allows 5 — 3 left in reserve)"
+  Ok "2 custom rules deployed (Free allows 5 -- 3 left in reserve)"
 
   Step "rate limiting"
   # Scoped to documents, not all requests: one page load fires about a dozen
@@ -310,20 +329,20 @@ function Phase-Waf {
     } | Out-Null
     Ok "www.$Domain -> $Domain (301)"
   } catch {
-    Warn "redirect rule failed — the token is probably missing Dynamic URL Redirects."
+    Warn "redirect rule failed -- the token is probably missing Dynamic URL Redirects."
     Warn "Add it in the dashboard instead: Rules -> Redirect Rules -> Create."
     Warn "Everything else in this phase succeeded."
   }
 
   Step "managed rules"
   # The full Cloudflare Managed Ruleset is Pro+. Free zones get the curated
-  # "Cloudflare Free Managed Ruleset", deployed automatically — nothing to
+  # "Cloudflare Free Managed Ruleset", deployed automatically -- nothing to
   # create, so this only reports.
   try {
-    Invoke-CF GET "/zones/$Zone/rulesets/phases/http_request_firewall_managed/entrypoint" | Out-Null
+    Invoke-CF GET "/zones/$Zone/rulesets/phases/http_request_firewall_managed/entrypoint" -Quiet | Out-Null
     Ok "managed ruleset entrypoint present"
   } catch {
-    Ok "no managed entrypoint (normal on Free — the free ruleset still runs)"
+    Ok "no managed entrypoint (normal on Free -- the free ruleset still runs)"
   }
 }
 
@@ -332,8 +351,8 @@ function Phase-Bots {
   Invoke-CF PUT "/zones/$Zone/bot_management" @{ fight_mode = $true } | Out-Null
   Ok "enabled"
   Warn "NOW TEST BOTH, and disable if either fails:"
-  Warn "  1. paste https://$Domain into a WhatsApp chat — the preview must render"
-  Warn "  2. Search Console -> URL Inspection -> Test Live URL — must succeed"
+  Warn "  1. paste https://$Domain into a WhatsApp chat -- the preview must render"
+  Warn "  2. Search Console -> URL Inspection -> Test Live URL -- must succeed"
   Warn "On Free, Bot Fight Mode cannot be skipped for specific bots. WhatsApp"
   Warn "previews are this restaurant's main channel, so a false positive costs"
   Warn "real customers. Roll back by re-running with fight_mode false."
@@ -351,7 +370,7 @@ function Phase-Hsts {
   Step "HSTS stage $Stage (max-age=$($cfg.age), includeSubDomains=$($cfg.inc), preload=$($cfg.pre))"
 
   # Staged on purpose. Preload is submitted to a browser-vendor list and takes
-  # months to reverse — if www or the apex ever fails TLS afterwards, the site
+  # months to reverse -- if www or the apex ever fails TLS afterwards, the site
   # is unreachable with no way to click through.
   #
   # nosniff is false because _headers already sets X-Content-Type-Options on
@@ -366,7 +385,7 @@ function Phase-Hsts {
   switch ($Stage) {
     '1' { Warn "verify, then wait ~24h before stage 2" }
     '2' { Warn "confirm https://www.$Domain serves a valid cert, then wait ~1 week" }
-    '3' { Warn "now submit at https://hstspreload.org — this is hard to undo" }
+    '3' { Warn "now submit at https://hstspreload.org -- this is hard to undo" }
   }
 }
 
@@ -424,7 +443,7 @@ function Phase-Verify {
   foreach ($p in 'http_request_firewall_custom','http_ratelimit','http_request_dynamic_redirect') {
     Say $p
     try {
-      $rules = (Invoke-CF GET "/zones/$Zone/rulesets/phases/$p/entrypoint").result.rules
+      $rules = (Invoke-CF GET "/zones/$Zone/rulesets/phases/$p/entrypoint" -Quiet).result.rules
       if ($rules) { $rules | ForEach-Object { Say "    - $($_.description) [$($_.action)]" } }
       else { Say "    (none)" }
     } catch { Say "    (none)" }
