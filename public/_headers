@@ -15,7 +15,7 @@
 # chain. It is set once at the zone instead (scripts/cloudflare-setup.sh).
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-sl6kgSLtwtT2zBvOqTRDwvTX3KSzLQaA8EonTdl1om0='; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-Yc3yu0OfeOKUqjOUkbVwf0iGx2hV4n0TP3HXn+RF/Wk='; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
@@ -36,8 +36,9 @@
   ! Cache-Control
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
 
-# The Open Graph image must be fetchable cross-origin so link previews render.
-/assets/storefront.jpg
+# Photos must be fetchable cross-origin, otherwise the Open Graph card and the
+# structured-data images fail to render in WhatsApp, Facebook and Google.
+/assets/*.jpg
   ! Cross-Origin-Resource-Policy
   Cross-Origin-Resource-Policy: cross-origin
 

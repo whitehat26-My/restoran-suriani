@@ -18,6 +18,7 @@
 #   8. bots       Bot Fight Mode — then TEST WHATSAPP PREVIEWS
 #   9. hsts 1|2|3 staged HSTS rollout, days apart
 #  10. hold       zone hold (anti-hijack)
+#      search-console <token>   Google Search Console DNS verification
 #      verify     read-only report of everything above
 #
 # Usage:
@@ -49,7 +50,8 @@ step() { printf '\n%s══ %s%s\n' "$DIM" "$*" "$RST"; }
 command -v curl >/dev/null || die "curl is required"
 command -v jq   >/dev/null || die "jq is required (apt install jq / brew install jq)"
 
-[ -n "${CF_API_TOKEN:-}" ] || die "CF_API_TOKEN is not set"
+# CF_API_TOKEN is checked in main(), after the usage text, so that running the
+# script with no arguments prints help rather than an unrelated error.
 
 # cf METHOD PATH [JSON] — calls the API and fails loudly on an unsuccessful
 # response, so a phase never silently half-applies.
@@ -372,6 +374,20 @@ phase_hsts() {
   esac
 }
 
+phase_search_console() {
+  local token="${1:-}"
+  [ -n "$token" ] || die "usage: $0 search-console <google-site-verification token>
+  Get it from Search Console -> Add property -> Domain -> it shows a TXT
+  record like 'google-site-verification=abc123...'. Pass only the token part."
+
+  step "Google Search Console verification"
+  # DNS verification registers a Domain property, which covers the apex, www
+  # and every subdomain at once, and unlike an HTML file it cannot be broken by
+  # a redeploy. Google keeps checking this record, so it must stay published.
+  dns_record TXT "@" "google-site-verification=$token" false
+  warn "now click Verify in Search Console (DNS can take a few minutes)"
+}
+
 phase_hold() {
   step "zone hold"
   # Stops anyone else adding restoransuriani.com to a different Cloudflare
@@ -412,7 +428,9 @@ phase_verify() {
 
 main() {
   local phase="${1:-}"
-  [ -n "$phase" ] || { sed -n '3,40p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+  [ -n "$phase" ] || { sed -n '3,41p' "$0" | sed 's/^# \{0,1\}//'; exit 1; }
+
+  [ -n "${CF_API_TOKEN:-}" ] || die "CF_API_TOKEN is not set"
 
   resolve_zone
   printf '%szone %s (%s)%s\n' "$DIM" "$DOMAIN" "$ZONE" "$RST"
@@ -426,8 +444,9 @@ main() {
     caa)        phase_caa ;;
     waf)        phase_waf ;;
     bots)       phase_bots ;;
-    hsts)       phase_hsts "${2:-}" ;;
-    hold)       phase_hold ;;
+    hsts)           phase_hsts "${2:-}" ;;
+    search-console) phase_search_console "${2:-}" ;;
+    hold)           phase_hold ;;
     verify)     phase_verify ;;
     *)          die "unknown phase '$phase'" ;;
   esac

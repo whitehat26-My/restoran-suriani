@@ -5,8 +5,10 @@ Kuala Lumpur, with a tap-to-view digital menu built from the restaurant's real
 menu boards.
 
 Live at **https://restoransuriani.com** — hosted on Cloudflare Workers static
-assets. See [CLOUDFLARE.md](CLOUDFLARE.md) for the domain, DNS and security
-setup.
+assets.
+
+- [CLOUDFLARE.md](CLOUDFLARE.md) — domain, DNS, TLS and security setup
+- [GOOGLE.md](GOOGLE.md) — Google Business Profile and Search Console
 
 ## Layout
 

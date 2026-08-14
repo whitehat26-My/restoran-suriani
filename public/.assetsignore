@@ -7,3 +7,8 @@ assets/README.txt
 assets/food/README.txt
 .DS_Store
 Thumbs.db
+
+# Google Business Profile artwork. These are uploaded by hand to the Maps
+# listing, not referenced by any page, so they stay in the repo (grab them
+# from GitHub) but are not served from the site.
+assets/google/
