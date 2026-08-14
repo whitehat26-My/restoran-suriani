@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Restoran Suriani">
+  <title>Restoran Suriani</title>
+  <!-- The signboard in miniature: maroon field, gold ogee arch, gold S. -->
+  <rect width="64" height="64" rx="12" fill="#4a0c14"/>
+  <path d="M14 52V30c0-7 4-10.5 8.5-13.5C26.5 13.8 29.5 12 32 7c2.5 5 5.5 6.8 9.5 9.5C46 19.5 50 23 50 30v22Z"
+        fill="none" stroke="#e8b923" stroke-width="2.5" stroke-linejoin="round"/>
+  <text x="32" y="45" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-size="30" font-weight="700"
+        fill="#e8b923">S</text>
+</svg>

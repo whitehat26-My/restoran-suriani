@@ -1,0 +1,14 @@
+# Files inside the assets directory that must not be published.
+# The repo root (wrangler.jsonc, README.md, scripts/, .git/) is already
+# excluded structurally by living outside public/.
+
+.assetsignore
+assets/README.txt
+assets/food/README.txt
+.DS_Store
+Thumbs.db
+
+# Google Business Profile artwork. These are uploaded by hand to the Maps
+# listing, not referenced by any page, so they stay in the repo (grab them
+# from GitHub) but are not served from the site.
+assets/google/

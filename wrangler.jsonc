@@ -1,0 +1,60 @@
+{
+  // Restoran Suriani — static site on Cloudflare Workers static assets.
+  //
+  // There is no build step and no Worker code. `wrangler deploy` uploads
+  // everything in ./public as-is.
+  //
+  // The site lives in public/ rather than the repo root on purpose. Cloudflare
+  // Pages used to auto-exclude .git, node_modules and .DS_Store from uploads;
+  // Workers static assets does NOT. With "directory": "." a deploy would
+  // publish the entire .git directory — including its object store and full
+  // history — to the public internet. .assetsignore can suppress that, but it
+  // is fail-open: every new file added to the repo root is published by
+  // default, and one missing line is a leak. Keeping the assets directory
+  // separate from the repo makes it fail-closed instead.
+  "name": "restoran-suriani",
+  "compatibility_date": "2026-08-14",
+
+  "assets": {
+    "directory": "./public",
+
+    // "/" -> public/index.html, and "/index.html" 301s to "/" so there is a
+    // single canonical URL. Deliberately NOT "single-page-application", which
+    // would return 200 + index.html for /wp-admin, /.env and every other
+    // scanner probe — bad for SEO and it makes probes look successful.
+    "html_handling": "auto-trailing-slash",
+
+    // Serve public/404.html with a real 404 status.
+    "not_found_handling": "404-page"
+
+    // No "binding" and no "run_worker_first": both are only valid alongside a
+    // "main" entrypoint, and this Worker has no code at all.
+  },
+
+  // Kill the *.workers.dev hostname. Left enabled,
+  // restoran-suriani.<account>.workers.dev serves a byte-identical copy of the
+  // site that bypasses the entire zone — no HSTS, no WAF, no rate limiting, no
+  // bot protection — and is duplicate content for Google. Note this must live
+  // in config: disabling it in the dashboard alone gets silently undone on the
+  // next `wrangler deploy`.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // The apex is attached as a Custom Domain; wrangler creates the DNS record
+  // and requests the certificate itself, so do not hand-create that record.
+  // www is NOT here — it is a zone-level Single Redirect to the apex, which
+  // runs earlier in the pipeline and avoids serving the site on two hostnames.
+  //
+  // Commented out until the domain is registered and the zone exists:
+  // deploying with a route pointing at a nonexistent zone fails the deploy.
+  // Uncomment once scripts/cloudflare-setup.sh reports the zone is live.
+  //
+  // "routes": [
+  //   { "pattern": "suriani.rest", "custom_domain": true }
+  // ],
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
