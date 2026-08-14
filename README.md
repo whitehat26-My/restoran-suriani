@@ -185,6 +185,12 @@ Pushing to `main` deploys automatically via Workers Builds. To deploy by hand:
 npx wrangler deploy
 ```
 
+**If a change is on `main` but not on the live site, the automatic builds have
+stopped** — it happens silently, and menu edits stop going live with no error
+anywhere. `npx wrangler deploy` publishes immediately regardless; then see
+[CLOUDFLARE.md](CLOUDFLARE.md#%EF%B8%8F-if-the-site-stops-matching-the-repo-builds-have-silently-stopped)
+to fix the pipeline itself.
+
 ## Still needs your input
 
 1. **GrabFood store URL** — foodpanda is done; Grab's button appears once its

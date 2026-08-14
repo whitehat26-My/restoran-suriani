@@ -143,21 +143,30 @@ can silently break them.
 | HTML file | `public/google<token>.html` | Must be inside `public/`, and the filename must match exactly |
 | DNS TXT | Cloudflare DNS | Only method that works for a **Domain** property |
 
-The HTML **file** method has bitten this project twice, both times for the
-same underlying reason — the file existed, but not at the URL Google fetches:
+The HTML **file** method failed here three ways at once, which is worth
+recording because each failure produced the identical symptom — a 404 at the
+URL Google fetches — while having a different cause:
 
+- **The deploy pipeline was down.** The file was correctly committed at
+  `public/google7383adf7d4950d30.html` and merged to `main`, but Workers
+  Builds had silently stopped 25 minutes earlier, so the live site never
+  received it. This was the actual cause of the 404, and it took longest to
+  find because the site kept serving `200` from its last good build. See
+  [CLOUDFLARE.md](CLOUDFLARE.md#%EF%B8%8F-if-the-site-stops-matching-the-repo-builds-have-silently-stopped).
 - Downloading the file twice makes the browser name the second copy
   `google<token> (4).html`. That space and `(4)` are part of the filename, so
-  it no longer matches the path Google requests.
-- Putting it in the repository root does nothing. Only `public/` is published
-  — see [CLOUDFLARE.md](CLOUDFLARE.md#why-the-site-lives-in-public). The repo
-  root and the site root are not the same place.
+  a copy uploaded under that name can never match the path Google requests.
+- Uploading it to the repository root does nothing. Only `public/` is
+  published — see
+  [CLOUDFLARE.md](CLOUDFLARE.md#why-the-site-lives-in-public). The repo root
+  and the site root are not the same place.
 
-A copy is kept at `public/google7383adf7d4950d30.html` as a second proof. Note
+The copy at `public/google7383adf7d4950d30.html` stays as a second proof. Note
 that `html_handling: "auto-trailing-slash"` in `wrangler.jsonc` makes
 `/google7383adf7d4950d30.html` answer **307 → `/google7383adf7d4950d30`**
 rather than `200` directly. That is a redirect, not a failure, and Google
-follows it.
+follows it. Routing was investigated and cleared early — the lesson is the
+opposite one: when a static file 404s, suspect the deploy before the router.
 
 ### Steps
 
@@ -191,8 +200,12 @@ is blocking Google's fetcher. Do not guess between them — run:
 
 It separates the four causes:
 
-1. **Tag not on the live page** — the change has not deployed. Only `main`
-   deploys; a commit on a feature branch changes nothing on the live site.
+1. **Tag not on the live page** — the change has not deployed. Either the
+   commit is not on `main` (feature branches deploy nothing), or it is on
+   `main` and Workers Builds has stopped — the failure that burned this
+   project on 14 Aug 2026. The fix for a stopped pipeline is in
+   [CLOUDFLARE.md](CLOUDFLARE.md#%EF%B8%8F-if-the-site-stops-matching-the-repo-builds-have-silently-stopped);
+   the immediate workaround is `npx wrangler deploy`.
 2. **Token mismatch** — Search Console is showing a different token than the
    one deployed. Pass the one on screen: `-Token <token>`.
 3. **Google's user agent gets 403/503** — Bot Fight Mode is challenging the

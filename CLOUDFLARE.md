@@ -90,6 +90,43 @@ credentials that reach beyond this one Worker. For a site maintained by a
 non-engineer editing `menu-data.js`, "no secret to leak, no YAML to rot" is
 worth more than a reviewable pipeline that is one line long.
 
+### ⚠️ If the site stops matching the repo: builds have silently stopped
+
+This happened on 14 Aug 2026 and cost hours, so it is written down. The last
+build ran at 14:46 UTC; every merge to `main` after that — including the Search
+Console verification file and later the meta tag — never went live. The site
+kept serving `200` from the old build, so nothing *looked* broken, and Search
+Console's "verification failed" gave no hint that it was reading week-old HTML.
+The settings change that turned off non-production builds (step 7 above) is the
+prime suspect for having disabled production builds along with them.
+
+**The tell:** a change is on `main` but not on the live site.
+
+**Confirm it in one line** — compare the repo against what visitors get:
+
+```powershell
+git log --oneline -1 origin/main
+curl.exe -sS https://suriani.rest/ | findstr /i "google-site-verification"
+```
+
+**Check the pipeline:** dashboard → **Workers & Pages** → `restoran-suriani` →
+**Deployments**. The newest deployment should reference the newest commit on
+`main`. Then **Settings** → **Build** — the repo must be connected, the
+production branch must be `main`, and automatic deployments for the production
+branch must be **enabled**. Only *non-production* branch builds should be off.
+
+**Bypass it any time** — this deploys whatever is checked out locally, no git
+pipeline involved:
+
+```powershell
+git pull origin main
+npx wrangler login
+npx wrangler deploy
+```
+
+This matters beyond Search Console: while builds are stopped, menu price
+edits do not go live either, with no error anywhere.
+
 ### Phase 3 — first deploy
 
 9. Uncomment the `routes` block in `wrangler.jsonc` (it is commented out because

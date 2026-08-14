@@ -24,17 +24,21 @@
   Cross-Origin-Resource-Policy: same-origin
   Cache-Control: public, max-age=0, must-revalidate
 
-# Fonts are content-stable: the filenames only change when the subset changes.
-/assets/fonts/*
-  ! Cache-Control
-  Cache-Control: public, max-age=31536000, immutable
-
 # Photos are NOT immutable — assets/README.txt tells the owner to drop new
 # photos in under the same names. 30 days with revalidation instead. If you
 # ever replace a photo, rename it rather than overwriting.
 /assets/*
   ! Cache-Control
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+# Fonts are content-stable: the filenames only change when the subset changes.
+# This block must come AFTER /assets/* — rules apply in file order, so placed
+# before it, the broader rule's "! Cache-Control" erases this value and fonts
+# silently get the 30-day photo policy instead. (Found by measuring, per the
+# warning at the top of this file.)
+/assets/fonts/*
+  ! Cache-Control
+  Cache-Control: public, max-age=31536000, immutable
 
 # Photos must be fetchable cross-origin, otherwise the Open Graph card and the
 # structured-data images fail to render in WhatsApp, Facebook and Google.
