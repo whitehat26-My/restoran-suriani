@@ -106,6 +106,35 @@ python3 scripts/csp-hash.py
 and paste the new hash into the `script-src` directive in `public/_headers`.
 Otherwise Google stops seeing the restaurant's structured data.
 
+## Logo
+
+In `public/assets/brand/`. The mark is the ogee arch from the restaurant's own
+signboard, holding a bowl and two curls of steam — masakan panas, which is what
+the kitchen actually sells.
+
+| File | Use |
+|---|---|
+| `logo-horizontal.svg` / `.png` | Primary. Website header, letterheads, anything wide |
+| `logo-horizontal-dark.svg` / `.png` | The same on a maroon or dark background |
+| `logo-stacked.svg` / `.png` | Square-ish spaces — packaging, posters, stamps |
+| `logo-mark.svg` / `logo-mark-1024.png` | Icon alone, where the name is already nearby |
+| `logo-mark-gold.svg` | Icon for dark backgrounds |
+| `logo-mark-mono.svg` / `-mono-1024.png` | **One ink.** Rubber stamps, embroidery, receipts, faxed forms |
+| `avatar-1024.png` | Square profile picture — WhatsApp Business, Facebook, Instagram |
+
+The wordmark is stored as **outlines, not live text**, so the files render
+identically anywhere without Fraunces or Figtree installed. That also means you
+cannot retype the name by editing the SVG — regenerate instead:
+
+```sh
+pip install fonttools brotli
+python3 scripts/make-logo.py          # SVGs
+node scripts/make-images.mjs          # PNG/JPEG exports
+```
+
+Minimum size for the mark is about 24px; below that the steam closes up. Give
+it clear space of at least half the arch's width on every side.
+
 ## Design notes
 
 The visual language is taken from the restaurant's own signboard: maroon

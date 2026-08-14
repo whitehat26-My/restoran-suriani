@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Restoran Suriani">
+  <title>Restoran Suriani</title>
+  <path d="M14,112 L14,64 C14,44 27,36 41,27 C53,19 56,14 60,8 C64,14 67,19 79,27 C93,36 106,44 106,64 L106,112 Z" fill="none" stroke="#2b1810" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M28,70 h64 a4,4 0 0 1 0,8 h-64 a4,4 0 0 1 0,-8 Z" fill="#2b1810"/>
+  <path d="M34,82 L86,82 C86,95 75,103 60,103 C45,103 34,95 34,82 Z" fill="#2b1810"/>
+  <path d="M52,62 C52,55 46,53 46,47 C46,42 50,40 50,36" fill="none" stroke="#2b1810" stroke-width="6" stroke-linecap="round"/>
+  <path d="M70,62 C70,55 64,53 64,47 C64,42 68,40 68,36" fill="none" stroke="#2b1810" stroke-width="6" stroke-linecap="round"/>
+</svg>
