@@ -17,7 +17,7 @@
      add the same URLs to the "sameAs" array in the JSON-LD block in
      index.html so Google associates them with the restaurant. */
   var DELIVERY = [
-    { id: "foodpanda", label: "foodpanda", url: "" },
+    { id: "foodpanda", label: "foodpanda", url: "https://www.foodpanda.my/ms/restaurant/r2qc/restoran-suriani-jalan-imbi" },
     { id: "grabfood", label: "GrabFood", url: "" }
   ];
 
