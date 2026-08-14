@@ -135,6 +135,27 @@ dns_record() {
   ok "$type $fqdn created -> $content"
 }
 
+# caa_record TAG VALUE — CAA cannot be created from a content string.
+# Cloudflare requires structured data { flags, tag, value } and answers a 9101
+# naming the missing fields otherwise. Matching is field-by-field because the
+# content string is server-formatted.
+caa_record() {
+  local tag="$1" value="$2" fqdn="$DOMAIN" existing
+  existing=$(cf GET "/zones/$ZONE/dns_records?type=CAA&name=$fqdn" \
+    | jq -r --arg t "$tag" --arg v "$value" \
+      '.result[] | select(.data.tag == $t and .data.value == $v) | .id' | head -1)
+
+  if [ -n "$existing" ]; then
+    ok "CAA $fqdn already set (0 $tag \"$value\")"
+    return
+  fi
+
+  cf POST "/zones/$ZONE/dns_records" \
+    "$(jq -nc --arg n "$fqdn" --arg t "$tag" --arg v "$value" \
+      '{type:"CAA", name:$n, ttl:1, data:{flags:0, tag:$t, value:$v}}')" >/dev/null
+  ok "CAA $fqdn created -> 0 $tag \"$value\""
+}
+
 # --------------------------------------------------------------------------
 # Phases
 # --------------------------------------------------------------------------
@@ -233,8 +254,8 @@ phase_caa() {
   # and break renewal.
   local ca
   for ca in 'letsencrypt.org' 'pki.goog; cansignhttpexchanges=yes' 'ssl.com'; do
-    dns_record CAA "@" "0 issue \"$ca\""     false
-    dns_record CAA "@" "0 issuewild \"$ca\"" false
+    caa_record issue     "$ca"
+    caa_record issuewild "$ca"
   done
   warn "verify with: dig +short CAA $DOMAIN"
 }
