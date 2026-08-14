@@ -106,6 +106,41 @@ python3 scripts/csp-hash.py
 and paste the new hash into the `script-src` directive in `public/_headers`.
 Otherwise Google stops seeing the restaurant's structured data.
 
+## Logo
+
+A wordmark, in `public/assets/brand/`: RESTORAN over a gold rule over
+*Suriani*, mirroring the arrangement on the restaurant's signboard. There is no
+pictorial mark.
+
+| File | Use |
+|---|---|
+| `logo.svg` / `logo.png` | **Primary.** Maroon, for light backgrounds |
+| `logo-dark.svg` / `.png` | Gold, for maroon or dark backgrounds |
+| `logo-mono.svg` / `.png` | One ink — stamps, embroidery, receipts, faxed forms |
+| `monogram.svg` | Square formats: favicon, WhatsApp/Facebook avatar |
+| `monogram-square.svg` | Same without rounded corners, for Google Business Profile |
+
+A wide wordmark cannot fill a square, and the favicon, social avatar and
+Business Profile logo slot all demand one. Rather than invent a second symbol,
+those use the wordmark's own **S** — same font, same weight, on a maroon tile.
+It is a crop of the logo, not a separate mark.
+
+The wordmark is stored as **outlines, not live text**, so the files render
+identically anywhere without Fraunces or Figtree installed. That also means you
+cannot retype the name by editing the SVG — change it in the script and
+regenerate:
+
+```sh
+pip install fonttools brotli
+python3 scripts/make-logo.py          # SVGs
+node scripts/make-images.mjs          # PNG/JPEG exports
+```
+
+Do not set the name in some other font and call it the logo — the whole point
+of shipping outlines is that there is one authoritative shape. Minimum width is
+about 110px, below which the letterspaced RESTORAN closes up. Give it clear
+space of at least the cap height of *Suriani* on every side.
+
 ## Design notes
 
 The visual language is taken from the restaurant's own signboard: maroon

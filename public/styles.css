@@ -203,7 +203,9 @@ a { color: inherit; }
 .brand-bismillah {
   font-family: var(--font-arabic);
   font-size: 0.95rem;
-  line-height: 1.4;
+  /* Amiri's descenders overrun a normal line box and land on whatever sits
+     below, so this line needs more room than Latin text of the same size. */
+  line-height: 1.9;
   color: var(--gold-light);
   opacity: 0.85;
 }
@@ -1323,6 +1325,10 @@ a { color: inherit; }
 }
 
 @media (max-width: 520px) {
+  .brand-bismillah { font-size: 0.82rem; }
+  /* Wraps to two lines at this width and makes the sticky header huge —
+     the same words are already in the hero. */
+  .brand-tagline { display: none; }
   .form-row-split { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr; }
   .hero-actions .btn { width: 100%; }

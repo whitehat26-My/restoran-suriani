@@ -45,13 +45,11 @@
   // www is NOT here — it is a zone-level Single Redirect to the apex, which
   // runs earlier in the pipeline and avoids serving the site on two hostnames.
   //
-  // Commented out until the domain is registered and the zone exists:
-  // deploying with a route pointing at a nonexistent zone fails the deploy.
-  // Uncomment once scripts/cloudflare-setup.sh reports the zone is live.
-  //
-  // "routes": [
-  //   { "pattern": "suriani.rest", "custom_domain": true }
-  // ],
+  // The zone is active, so this is live. On deploy, Wrangler creates the apex
+  // DNS record and requests the certificate itself — do not hand-create either.
+  "routes": [
+    { "pattern": "suriani.rest", "custom_domain": true }
+  ],
 
   "observability": {
     "enabled": true,
