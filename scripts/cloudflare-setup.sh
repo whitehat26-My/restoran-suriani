@@ -426,7 +426,16 @@ phase_search_console() {
   local token="${1:-}"
   [ -n "$token" ] || die "usage: $0 search-console <google-site-verification token>
   Get it from Search Console -> Add property -> Domain -> it shows a TXT
-  record like 'google-site-verification=abc123...'. Pass only the token part."
+  record like 'google-site-verification=xxxxxxxx'. Pass only the part after '='."
+
+  # Google's tokens are base64url, around 43 characters. Anything containing a
+  # dot, ellipsis or space is documentation text pasted verbatim, which would
+  # publish a junk record that can never verify.
+  if ! printf '%s' "$token" | grep -Eq '^[A-Za-z0-9_-]{20,}$'; then
+    die "that does not look like a Search Console token: '$token'
+  Tokens are ~43 characters of letters, digits, '-' and '_', with no dots,
+  spaces or ellipses. Pass only the part after the '=' -- the real one."
+  fi
 
   step "Google Search Console verification"
   # DNS verification registers a Domain property, which covers the apex, www
