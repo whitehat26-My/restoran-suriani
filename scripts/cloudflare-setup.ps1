@@ -374,16 +374,56 @@ function Phase-Waf {
   }
 }
 
+function Set-FightMode {
+  param([bool]$On)
+  # This endpoint is a whole-object PUT whose required fields vary by plan and
+  # have grown over time (ai_bots_protection and crawler_protection are recent
+  # additions). Sending just fight_mode returns a bare "10400 Bad Request"
+  # that names nothing. So read the current config, flip the one field, and
+  # write the whole thing back -- which stays correct as Cloudflare adds more.
+  $current = (Invoke-CF GET "/zones/$Zone/bot_management").result
+
+  $body = @{}
+  foreach ($prop in $current.PSObject.Properties) {
+    # Server-computed fields are rejected on write.
+    if ($prop.Name -in @('using_latest_model', 'stale_zone_configuration')) { continue }
+    $body[$prop.Name] = $prop.Value
+  }
+  $body['fight_mode'] = $On
+
+  # AI crawlers stay allowed on purpose -- for a restaurant found by search,
+  # absence from AI answers is a lost customer, not a security win.
+  if ($body.ContainsKey('ai_bots_protection')) { $body['ai_bots_protection'] = 'disabled' }
+
+  try {
+    Invoke-CF PUT "/zones/$Zone/bot_management" -Quiet $body | Out-Null
+    return $true
+  } catch {
+    Warn "Bot Fight Mode could not be changed from the API on this plan."
+    Warn "Use the dashboard instead: Security -> Bots -> Bot Fight Mode."
+    Warn "It is the least valuable control here -- the WAF rules, rate limit"
+    Warn "and strict TLS do the real work, so skipping it costs little."
+    return $false
+  }
+}
+
 function Phase-Bots {
   Step "Bot Fight Mode"
-  Invoke-CF PUT "/zones/$Zone/bot_management" @{ fight_mode = $true } | Out-Null
+  if (-not (Set-FightMode $true)) { return }
   Ok "enabled"
-  Warn "NOW TEST BOTH, and disable if either fails:"
+  Warn "NOW TEST BOTH, and turn it off if either fails:"
   Warn "  1. paste https://$Domain into a WhatsApp chat -- the preview must render"
   Warn "  2. Search Console -> URL Inspection -> Test Live URL -- must succeed"
   Warn "On Free, Bot Fight Mode cannot be skipped for specific bots. WhatsApp"
   Warn "previews are this restaurant's main channel, so a false positive costs"
-  Warn "real customers. Roll back by re-running with fight_mode false."
+  Warn "real customers."
+  Warn ""
+  Warn "Roll back with:  .\scripts\cloudflare-setup.ps1 bots-off"
+}
+
+function Phase-BotsOff {
+  Step "Bot Fight Mode -- off"
+  if (Set-FightMode $false) { Ok "disabled" }
 }
 
 function Phase-Hsts {
@@ -531,6 +571,7 @@ switch ($Phase) {
   'caa'            { Phase-Caa }
   'waf'            { Phase-Waf }
   'bots'           { Phase-Bots }
+  'bots-off'       { Phase-BotsOff }
   'hsts'           { Phase-Hsts $Arg }
   'search-console' { Phase-SearchConsole $Arg }
   'hold'           { Phase-Hold }
