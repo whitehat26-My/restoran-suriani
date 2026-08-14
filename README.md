@@ -108,23 +108,27 @@ Otherwise Google stops seeing the restaurant's structured data.
 
 ## Logo
 
-In `public/assets/brand/`. The mark is the ogee arch from the restaurant's own
-signboard, holding a bowl and two curls of steam — masakan panas, which is what
-the kitchen actually sells.
+A wordmark, in `public/assets/brand/`: RESTORAN over a gold rule over
+*Suriani*, mirroring the arrangement on the restaurant's signboard. There is no
+pictorial mark.
 
 | File | Use |
 |---|---|
-| `logo-horizontal.svg` / `.png` | Primary. Website header, letterheads, anything wide |
-| `logo-horizontal-dark.svg` / `.png` | The same on a maroon or dark background |
-| `logo-stacked.svg` / `.png` | Square-ish spaces — packaging, posters, stamps |
-| `logo-mark.svg` / `logo-mark-1024.png` | Icon alone, where the name is already nearby |
-| `logo-mark-gold.svg` | Icon for dark backgrounds |
-| `logo-mark-mono.svg` / `-mono-1024.png` | **One ink.** Rubber stamps, embroidery, receipts, faxed forms |
-| `avatar-1024.png` | Square profile picture — WhatsApp Business, Facebook, Instagram |
+| `logo.svg` / `logo.png` | **Primary.** Maroon, for light backgrounds |
+| `logo-dark.svg` / `.png` | Gold, for maroon or dark backgrounds |
+| `logo-mono.svg` / `.png` | One ink — stamps, embroidery, receipts, faxed forms |
+| `monogram.svg` | Square formats: favicon, WhatsApp/Facebook avatar |
+| `monogram-square.svg` | Same without rounded corners, for Google Business Profile |
+
+A wide wordmark cannot fill a square, and the favicon, social avatar and
+Business Profile logo slot all demand one. Rather than invent a second symbol,
+those use the wordmark's own **S** — same font, same weight, on a maroon tile.
+It is a crop of the logo, not a separate mark.
 
 The wordmark is stored as **outlines, not live text**, so the files render
 identically anywhere without Fraunces or Figtree installed. That also means you
-cannot retype the name by editing the SVG — regenerate instead:
+cannot retype the name by editing the SVG — change it in the script and
+regenerate:
 
 ```sh
 pip install fonttools brotli
@@ -132,8 +136,10 @@ python3 scripts/make-logo.py          # SVGs
 node scripts/make-images.mjs          # PNG/JPEG exports
 ```
 
-Minimum size for the mark is about 24px; below that the steam closes up. Give
-it clear space of at least half the arch's width on every side.
+Do not set the name in some other font and call it the logo — the whole point
+of shipping outlines is that there is one authoritative shape. Minimum width is
+about 110px, below which the letterspaced RESTORAN closes up. Give it clear
+space of at least the cap height of *Suriani* on every side.
 
 ## Design notes
 

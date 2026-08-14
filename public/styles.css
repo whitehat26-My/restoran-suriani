@@ -193,25 +193,11 @@ a { color: inherit; }
 /* --- Brand lockup ------------------------------------------------------- */
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  text-decoration: none;
-  line-height: 1.1;
-}
-
-.brand-mark {
-  flex: none;
-  width: 46px;
-  height: 46px;
-  color: var(--gold);
-  transition: width 0.25s ease, height 0.25s ease;
-}
-
-.brand-text {
   display: grid;
   justify-items: start;
   gap: 0.1rem;
+  text-decoration: none;
+  line-height: 1.1;
 }
 
 .brand-bismillah {
@@ -288,7 +274,6 @@ a { color: inherit; }
 .site-header.is-stuck .header-inner { padding-block: 0.55rem; }
 .site-header.is-stuck .brand-bismillah,
 .site-header.is-stuck .brand-tagline { display: none; }
-.site-header.is-stuck .brand-mark { width: 34px; height: 34px; }
 
 .site-nav {
   display: flex;
@@ -1340,8 +1325,6 @@ a { color: inherit; }
 }
 
 @media (max-width: 520px) {
-  .brand { gap: 0.6rem; }
-  .brand-mark { width: 38px; height: 38px; }
   .brand-bismillah { font-size: 0.82rem; }
   /* Wraps to two lines at this width and makes the sticky header huge —
      the same words are already in the hero. */

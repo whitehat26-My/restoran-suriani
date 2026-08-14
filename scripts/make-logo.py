@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Regenerate the Restoran Suriani logo files into public/assets/brand/.
 
-The wordmark is converted from live text into SVG outlines, so the logo files
-carry no font dependency — a logo that only renders where a webfont happens to
-be installed is not a logo. The mark is hand-drawn geometry: the ogee arch from
-the restaurant's own signboard, holding a bowl and two curls of steam.
+The logo is a wordmark: RESTORAN over a gold rule over Suriani, mirroring the
+arrangement on the restaurant's signboard. There is no pictorial mark.
+
+It is converted from live text into SVG outlines, so the files carry no font
+dependency — a logo that only renders where a webfont happens to be installed
+is not a logo. The trade-off is that the name cannot be retyped by editing the
+SVG; change it here and regenerate.
+
+Square formats (favicon, WhatsApp avatar, Google Business Profile logo) cannot
+hold a wide wordmark, so those use a monogram cut from the wordmark's own S in
+the same weight of Fraunces — a crop of the logo rather than a second symbol.
 
     pip install fonttools brotli
     python3 scripts/make-logo.py
@@ -61,36 +68,7 @@ _sy0, SUR_ASC = bbox(fraunces, "Suriani", 100)
 SUR_DESC = -_sy0
 _ry0, RES_ASC = bbox(figtree, "RESTORAN", 26)
 
-MAROON, MAROON_D, GOLD, GOLD_LT, INK = "#7a1120", "#4a0c14", "#e8b923", "#f4d878", "#2b1810"
-
-# --- mark -----------------------------------------------------------------
-# The ogee arch is traced from the mosque motif on the restaurant's own
-# signboard. Inside it, a bowl and two curls of steam — masakan panas, which
-# is what they actually sell. Bold shapes only, so it holds at favicon size.
-ARCH = ("M14,112 L14,64 C14,44 27,36 41,27 C53,19 56,14 60,8 "
-        "C64,14 67,19 79,27 C93,36 106,44 106,64 L106,112 Z")
-RIM   = "M28,70 h64 a4,4 0 0 1 0,8 h-64 a4,4 0 0 1 0,-8 Z"
-BOWL  = "M34,82 L86,82 C86,95 75,103 60,103 C45,103 34,95 34,82 Z"
-STEAM = ["M52,62 C52,55 46,53 46,47 C46,42 50,40 50,36",
-         "M70,62 C70,55 64,53 64,47 C64,42 68,40 68,36"]
-MARK_H = 120
-
-def mark(arch_fill, inner):
-    s = "".join(f'\n  <path d="{d}" fill="none" stroke="{inner}" stroke-width="6" '
-                f'stroke-linecap="round"/>' for d in STEAM)
-    return (f'<path d="{ARCH}" fill="{arch_fill}"/>\n'
-            f'  <path d="{RIM}" fill="{inner}"/>\n'
-            f'  <path d="{BOWL}" fill="{inner}"/>{s}')
-
-def mark_outline(ink):
-    """Single ink: the arch becomes an outline so the whole mark prints in one
-    colour — a rubber stamp, embroidery on an apron, a receipt header."""
-    s = "".join(f'\n  <path d="{d}" fill="none" stroke="{ink}" stroke-width="6" '
-                f'stroke-linecap="round"/>' for d in STEAM)
-    return (f'<path d="{ARCH}" fill="none" stroke="{ink}" stroke-width="8" '
-            f'stroke-linejoin="round"/>\n'
-            f'  <path d="{RIM}" fill="{ink}"/>\n'
-            f'  <path d="{BOWL}" fill="{ink}"/>{s}')
+MAROON, MAROON_D, GOLD, GOLD_LT = "#7a1120", "#4a0c14", "#e8b923", "#f4d878"
 
 # --- wordmark layout, from measured glyph bounds --------------------------
 RES_BASE = round(RES_ASC, 1)
@@ -101,45 +79,59 @@ WM_H     = round(SUR_BASE + SUR_DESC, 1)
 
 def wordmark(res_fill, rule_fill, sur_fill):
     return (f'<path d="{RES}" transform="translate(0,{RES_BASE})" fill="{res_fill}"/>\n'
-            f'    <rect x="0" y="{RULE_Y}" width="{SUR_W:.1f}" height="{RULE_H}" fill="{rule_fill}"/>\n'
-            f'    <path d="{SUR}" transform="translate(0,{SUR_BASE})" fill="{sur_fill}"/>')
+            f'  <rect x="0" y="{RULE_Y}" width="{SUR_W:.1f}" height="{RULE_H}" fill="{rule_fill}"/>\n'
+            f'  <path d="{SUR}" transform="translate(0,{SUR_BASE})" fill="{sur_fill}"/>')
 
 def svg(w, h, body, title):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" '
             f'width="{w}" height="{h}" role="img" aria-label="{title}">\n'
             f'  <title>{title}</title>\n  {body}\n</svg>\n')
 
-GAP    = 34
-LOCK_H = round(max(MARK_H, WM_H) + 8)
-LOCK_W = round(MARK_H + GAP + SUR_W)
-MY     = round((LOCK_H - MARK_H) / 2, 1)   # mark, vertically centred
-WY     = round((LOCK_H - WM_H) / 2, 1)     # wordmark, vertically centred
-
-def lockup(arch, inner, res, rule, sur):
-    return (f'<g transform="translate(0,{MY})">{mark(arch, inner)}</g>\n'
-            f'  <g transform="translate({MARK_H + GAP},{WY})">{wordmark(res, rule, sur)}</g>')
+W, H = round(SUR_W), round(WM_H)
+TITLE = "Restoran Suriani"
 
 files = {
-  "logo-mark.svg":            svg(120, 120, mark(MAROON, GOLD), "Restoran Suriani"),
-  "logo-mark-gold.svg":       svg(120, 120, mark(GOLD, MAROON_D), "Restoran Suriani"),
-  "logo-mark-mono.svg":       svg(120, 120, mark_outline(INK), "Restoran Suriani"),
-  "logo-horizontal.svg":      svg(LOCK_W, LOCK_H, lockup(MAROON, GOLD, MAROON, GOLD, MAROON_D), "Restoran Suriani"),
-  "logo-horizontal-dark.svg": svg(LOCK_W, LOCK_H, lockup(GOLD, MAROON_D, GOLD_LT, GOLD, GOLD), "Restoran Suriani"),
+  # Primary — maroon, for light backgrounds
+  "logo.svg":       svg(W, H, wordmark(MAROON, GOLD, MAROON_D), TITLE),
+  # For maroon or dark backgrounds (the site header, the signboard)
+  "logo-dark.svg":  svg(W, H, wordmark(GOLD_LT, GOLD, GOLD), TITLE),
+  # Single ink — stamps, embroidery, receipts, anything one-colour
+  "logo-mono.svg":  svg(W, H, wordmark("#2b1810", "#2b1810", "#2b1810"), TITLE),
 }
 
-# stacked
-SX = round((SUR_W - MARK_H) / 2, 1)
-SGAP = 34
-files["logo-stacked.svg"] = svg(
-    round(SUR_W), round(MARK_H + SGAP + WM_H),
-    f'<g transform="translate({SX},0)">{mark(MAROON, GOLD)}</g>\n'
-    f'  <g transform="translate(0,{MARK_H + SGAP})">{wordmark(MAROON, GOLD, MAROON_D)}</g>',
-    "Restoran Suriani")
+# --- monogram for square formats ------------------------------------------
+# Not a new symbol: the S of "Suriani", same font and weight, on a maroon tile.
+S_SIZE = 92
+S_PATH, _ = run(fraunces, "S", S_SIZE)
+_s_lo, _s_hi = bbox(fraunces, "S", S_SIZE)
+_bp = BoundsPen(fraunces.getGlyphSet())
+fraunces.getGlyphSet()[fraunces.getBestCmap()[ord("S")]].draw(_bp)
+_scale = S_SIZE / fraunces["head"].unitsPerEm
+S_W = (_bp.bounds[2] - _bp.bounds[0]) * _scale
+S_X = round(60 - S_W / 2 - _bp.bounds[0] * _scale, 1)   # centre the inked area
+S_Y = round(60 + _s_hi / 2, 1)                          # optical vertical centre
 
-out = ROOT / "public/assets/brand"; out.mkdir(parents=True, exist_ok=True)
+def monogram(tile, ink, rounded=True):
+    r = ' rx="24"' if rounded else ''
+    return (f'<rect width="120" height="120"{r} fill="{tile}"/>\n'
+            f'  <path d="{S_PATH}" transform="translate({S_X},{S_Y})" fill="{ink}"/>')
+
+files["monogram.svg"]      = svg(120, 120, monogram(MAROON_D, GOLD), TITLE)
+files["monogram-square.svg"] = svg(120, 120, monogram(MAROON_D, GOLD, rounded=False), TITLE)
+
+out = ROOT / "public/assets/brand"
+out.mkdir(parents=True, exist_ok=True)
+# The old arch mark and its lockups are retired.
+for stale in out.glob("logo-mark*"):
+    stale.unlink()
+for stale in list(out.glob("logo-horizontal*")) + list(out.glob("logo-stacked*")):
+    stale.unlink()
+
 for n, c in files.items():
     (out / n).write_text(c)
 
-print(f"  lockup {LOCK_W}x{LOCK_H}  ·  wordmark {SUR_W:.0f}x{WM_H}  ·  mark 120x120")
-print(f"  Suriani ascenders top at {SUR_BASE - SUR_ASC:.1f}, rule ends at {RULE_Y + RULE_H} → {SUR_BASE - SUR_ASC - RULE_Y - RULE_H:.1f}px clearance")
-for n in files: print(f"    {n}")
+print(f"  wordmark {W}x{H}  ·  monogram 120x120")
+print(f"  Suriani ascenders top at {SUR_BASE - SUR_ASC:.1f}, rule ends at {RULE_Y + RULE_H} "
+      f"-> {SUR_BASE - SUR_ASC - RULE_Y - RULE_H:.1f}px clearance")
+for n in files:
+    print(f"    {n}")
