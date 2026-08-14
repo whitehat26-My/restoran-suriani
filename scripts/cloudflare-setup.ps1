@@ -306,21 +306,39 @@ function Phase-Waf {
   # Scoped to documents, not all requests: one page load fires about a dozen
   # requests, so an all-requests cap trips after a handful of page views.
   # cf.colo.id is mandatory in characteristics on non-Enterprise plans.
-  # 60/min is deliberately generous because of carrier CGNAT.
-  Invoke-CF PUT "/zones/$Zone/rulesets/phases/http_ratelimit/entrypoint" @{
-    rules = @(
-      @{ description = 'Per-IP cap on page requests'; action = 'block'; enabled = $true
-         expression  = '(http.request.uri.path eq "/" or ends_with(http.request.uri.path, ".html"))'
-         ratelimit   = @{
-           characteristics     = @('ip.src', 'cf.colo.id')
-           period              = 60
-           requests_per_period = 60
-           mitigation_timeout  = 60
-           requests_to_origin  = $false
-         } }
-    )
-  } | Out-Null
-  Ok "rate limit: 60 page requests / minute / IP"
+  #
+  # Which period and mitigation timeout a zone may use is an entitlement, and
+  # the Free plan is restricted to a 10-second window. Rather than hard-code a
+  # guess, try the widest window first and fall back -- the API names the
+  # allowed values in its error, but only after rejecting the request.
+  $attempts = @(
+    @{ period = 60; requests = 60; timeout = 60; label = '60 page requests / minute / IP' },
+    @{ period = 10; requests = 50; timeout = 60; label = '50 page requests / 10s / IP, 60s block' },
+    @{ period = 10; requests = 50; timeout = 10; label = '50 page requests / 10s / IP, 10s block' }
+  )
+
+  $applied = $false
+  foreach ($a in $attempts) {
+    try {
+      Invoke-CF PUT "/zones/$Zone/rulesets/phases/http_ratelimit/entrypoint" -Quiet @{
+        rules = @(
+          @{ description = 'Per-IP cap on page requests'; action = 'block'; enabled = $true
+             expression  = '(http.request.uri.path eq "/" or ends_with(http.request.uri.path, ".html"))'
+             ratelimit   = @{
+               characteristics     = @('ip.src', 'cf.colo.id')
+               period              = $a.period
+               requests_per_period = $a.requests
+               mitigation_timeout  = $a.timeout
+               requests_to_origin  = $false
+             } }
+        )
+      } | Out-Null
+      Ok "rate limit: $($a.label)"
+      $applied = $true
+      break
+    } catch { }
+  }
+  if (-not $applied) { Warn "rate limiting rejected every supported window -- skipped" }
 
   Step "www -> apex redirect"
   try {
@@ -418,9 +436,17 @@ usage: .\scripts\cloudflare-setup.ps1 search-console <token>
 function Phase-Hold {
   Step "zone hold"
   # Stops anyone else adding this domain to a different Cloudflare account,
-  # which is a real takeover vector.
-  Invoke-CF POST "/zones/$Zone/hold?include_subdomains=true" | Out-Null
-  Ok "zone hold enabled"
+  # which is a real takeover vector -- but it is an Enterprise-only feature,
+  # so on Free this reports the equivalent protection rather than failing.
+  try {
+    Invoke-CF POST "/zones/$Zone/hold?include_subdomains=true" -Quiet | Out-Null
+    Ok "zone hold enabled"
+  } catch {
+    Warn "zone hold is Enterprise-only -- not available on this plan."
+    Warn "The protection it offers is against someone adding suriani.rest to"
+    Warn "another Cloudflare account. On Free, the equivalent defences are the"
+    Warn "registrar lock and auto-renew at Namecheap, which are already on."
+  }
 }
 
 function Phase-Verify {
