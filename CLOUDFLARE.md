@@ -345,6 +345,21 @@ and rotates one internally.
 
 ## Verification
 
+On Windows, one command checks the whole stack against the live site --
+headers, redirects, WAF behaviour and the anti-spoofing DNS. It is read-only
+and needs no API token:
+
+```powershell
+.\scripts\verify-live.ps1
+```
+
+The check that matters most in there is `/.well-known/` returning **404, not
+403**. Cloudflare validates certificate renewals through that path, so a WAF
+rule that blocks it breaks renewal about sixty days later -- long after
+anyone would connect the two events.
+
+The equivalent by hand, on any platform:
+
 ```sh
 D=suriani.rest
 
