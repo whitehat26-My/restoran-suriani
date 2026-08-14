@@ -463,10 +463,39 @@ function Phase-SearchConsole {
     Die @"
 usage: .\scripts\cloudflare-setup.ps1 search-console <token>
   Search Console -> Add property -> Domain shows a TXT record like
-  'google-site-verification=abc123...'. Pass only the token part.
+  'google-site-verification=xxxxxxxx'. Pass only the part after the '='.
 "@
   }
+
+  # Google's tokens are base64url and around 43 characters. Anything with a
+  # dot, ellipsis or space in it is documentation text that got pasted
+  # verbatim -- publishing it wastes a DNS round trip and leaves a junk
+  # record behind, which is exactly the mistake this catches.
+  if ($Token -notmatch '^[A-Za-z0-9_-]{20,}$') {
+    Die @"
+that does not look like a Search Console token: '$Token'
+
+  Tokens are ~43 characters of letters, digits, '-' and '_', with no dots,
+  spaces or ellipses. Search Console shows the whole record as
+
+      google-site-verification=XKrM7q_9Fs2...
+
+  and you pass ONLY the part after the '=' -- the real one, not the example.
+"@
+  }
+
   Step "Google Search Console verification"
+
+  # Surface any verification records already present, so a stale or mistyped
+  # one is visible rather than quietly accumulating alongside the good one.
+  $existing = (Invoke-CF GET "/zones/$Zone/dns_records?type=TXT&name=$Domain" -Quiet).result |
+              Where-Object { $_.content -like 'google-site-verification=*' }
+  foreach ($e in $existing) {
+    if ($e.content -notlike "*$Token*") {
+      Warn "another verification record exists: $($e.content)"
+      Warn "  if that one is stale, delete it in Cloudflare -> DNS -> Records"
+    }
+  }
   # DNS verification registers a Domain property covering apex, www and every
   # subdomain at once, and unlike an HTML file it survives a redeploy.
   Set-DnsRecord -Type TXT -Name '@' -Content "google-site-verification=$Token"
