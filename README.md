@@ -29,7 +29,7 @@ public/                  ← everything here is served publicly
   robots.txt  sitemap.xml  favicon.svg  apple-touch-icon.png
   assets/                photos and self-hosted fonts
 wrangler.jsonc           Cloudflare deployment config
-scripts/                 Cloudflare setup + maintenance scripts
+scripts/                 Cloudflare setup (bash + PowerShell), logo and image generators
 ```
 
 ## How to update the menu
