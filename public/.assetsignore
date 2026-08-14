@@ -1,0 +1,9 @@
+# Files inside the assets directory that must not be published.
+# The repo root (wrangler.jsonc, README.md, scripts/, .git/) is already
+# excluded structurally by living outside public/.
+
+.assetsignore
+assets/README.txt
+assets/food/README.txt
+.DS_Store
+Thumbs.db

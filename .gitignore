@@ -3,3 +3,7 @@ Thumbs.db
 *.log
 .vscode/
 .claude/
+
+# tooling
+node_modules/
+*.tgz
