@@ -181,15 +181,34 @@ follows it.
 
 ### If verification fails
 
-Check the proof is actually live before touching anything in Search Console —
-a deploy that has not finished looks exactly like a wrong token:
+Search Console reports every failure as the same "Ownership verification
+failed", whether the tag is missing, the deploy has not landed, or Cloudflare
+is blocking Google's fetcher. Do not guess between them — run:
+
+```powershell
+.\scripts\check-verification.ps1
+```
+
+It separates the four causes:
+
+1. **Tag not on the live page** — the change has not deployed. Only `main`
+   deploys; a commit on a feature branch changes nothing on the live site.
+2. **Token mismatch** — Search Console is showing a different token than the
+   one deployed. Pass the one on screen: `-Token <token>`.
+3. **Google's user agent gets 403/503** — Bot Fight Mode is challenging the
+   verifier. The page looks perfect in your browser and fails for Google.
+   Turn it off: `.\scripts\cloudflare-setup.ps1 bots-off`.
+4. **Wrong property type** — a **Domain** property accepts *only* the DNS TXT
+   method. No meta tag or HTML file will ever verify one.
+
+If the script itself will not run, the single most important line is:
 
 ```powershell
 curl.exe -sS https://suriani.rest/ | findstr /i "google-site-verification"
 ```
 
-Nothing printed means the change has not deployed yet. Only `main` deploys —
-a commit sitting on a branch changes nothing on the live site.
+Nothing printed means it has not deployed, and nothing done in Search Console
+will help until it has.
 
 ### Then check two things
 
