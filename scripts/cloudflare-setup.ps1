@@ -1,0 +1,459 @@
+<#
+.SYNOPSIS
+  Restoran Suriani — Cloudflare zone configuration as code, for Windows.
+
+.DESCRIPTION
+  A native PowerShell port of scripts/cloudflare-setup.sh. Same phases, same
+  order, same behaviour — but no bash, no jq, no WSL. Everything it needs is
+  built into PowerShell 5.1 and later.
+
+  Idempotent: every phase converges to the same state on re-run. Scalar
+  settings are PATCHed only on drift, rulesets are PUT wholesale (declarative
+  replace), and DNS records are matched before create-or-update.
+
+  Run the phases IN ORDER. Several break things if run early:
+
+    1. dns-www    proxied www placeholders (the redirect rule needs them)
+    2. dns-email  anti-spoofing — null MX, SPF, DMARC, null DKIM
+    3. tls        SSL mode, TLS versions, HTTPS rewrites  (NOT always-https)
+    4. wait-cert  block until Universal SSL is active
+    5. https-on   always_use_https                        (needs step 4)
+    6. caa        CAA records                             (needs step 4)
+    7. waf        firewall rules + rate limiting + www->apex redirect
+    8. bots       Bot Fight Mode — then TEST WHATSAPP PREVIEWS
+    9. hsts 1|2|3 staged rollout, days apart
+   10. hold       zone hold (anti-hijack)
+       search-console <token>   Google Search Console DNS verification
+       verify     read-only report
+
+.EXAMPLE
+  $env:CF_API_TOKEN = "..."
+  .\scripts\cloudflare-setup.ps1 verify
+  .\scripts\cloudflare-setup.ps1 dns-email
+  .\scripts\cloudflare-setup.ps1 hsts 1
+
+.NOTES
+  If PowerShell blocks the script, run it for this session only with:
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+#>
+
+param(
+  [Parameter(Position = 0)][string]$Phase,
+  [Parameter(Position = 1)][string]$Arg
+)
+
+$ErrorActionPreference = 'Stop'
+$Domain = if ($env:DOMAIN) { $env:DOMAIN } else { 'suriani.rest' }
+$Api    = 'https://api.cloudflare.com/client/v4'
+
+# --------------------------------------------------------------------------
+# Plumbing
+# --------------------------------------------------------------------------
+
+function Say  ($m) { Write-Host "  $m" }
+function Ok   ($m) { Write-Host "  [ok] $m"   -ForegroundColor Green }
+function Warn ($m) { Write-Host "  [!]  $m"   -ForegroundColor Yellow }
+function Step ($m) { Write-Host "`n== $m"     -ForegroundColor DarkGray }
+function Die  ($m) { Write-Host "error: $m"   -ForegroundColor Red; exit 1 }
+
+function Invoke-CF {
+  param([string]$Method, [string]$Path, $Body)
+
+  $headers = @{ Authorization = "Bearer $($env:CF_API_TOKEN)" }
+  $params  = @{
+    Method      = $Method
+    Uri         = "$Api$Path"
+    Headers     = $headers
+    ContentType = 'application/json'
+  }
+  if ($null -ne $Body) {
+    $params.Body = ($Body | ConvertTo-Json -Depth 12 -Compress)
+  }
+
+  try {
+    $r = Invoke-RestMethod @params
+  } catch {
+    # Cloudflare returns useful JSON even on 4xx — surface it rather than
+    # letting PowerShell print a bare status code.
+    $resp = $_.Exception.Response
+    if ($resp) {
+      $reader = New-Object System.IO.StreamReader($resp.GetResponseStream())
+      $raw = $reader.ReadToEnd()
+      try {
+        $j = $raw | ConvertFrom-Json
+        foreach ($e in $j.errors) { Write-Host "  [$($e.code)] $($e.message)" -ForegroundColor Red }
+      } catch { Write-Host $raw -ForegroundColor Red }
+    }
+    throw "API call failed: $Method $Path"
+  }
+
+  if (-not $r.success) {
+    foreach ($e in $r.errors) { Write-Host "  [$($e.code)] $($e.message)" -ForegroundColor Red }
+    throw "API call failed: $Method $Path"
+  }
+  return $r
+}
+
+function Resolve-Zone {
+  if ($env:CF_ZONE_ID) { return $env:CF_ZONE_ID }
+  $r = Invoke-CF GET "/zones?name=$Domain"
+  if (-not $r.result -or $r.result.Count -eq 0) {
+    Die "zone '$Domain' not found — check the token is scoped to this zone"
+  }
+  return $r.result[0].id
+}
+
+function Set-Setting {
+  param([string]$Key, $Want)
+  $have = (Invoke-CF GET "/zones/$Zone/settings/$Key").result.value
+  if ("$have" -eq "$Want") { Ok "$Key already $Want" }
+  else {
+    Invoke-CF PATCH "/zones/$Zone/settings/$Key" @{ value = $Want } | Out-Null
+    Ok "$Key : $have -> $Want"
+  }
+}
+
+function Set-DnsRecord {
+  param(
+    [string]$Type, [string]$Name, [string]$Content,
+    [bool]$Proxied = $false, $Priority = $null
+  )
+
+  $fqdn = switch -Regex ($Name) {
+    '^@$'                     { $Domain }
+    ([regex]::Escape($Domain) + '$') { $Name }
+    default                   { "$Name.$Domain" }
+  }
+
+  $body = @{ type = $Type; name = $fqdn; content = $Content; ttl = 1; proxied = $Proxied }
+  if ($null -ne $Priority) { $body.priority = $Priority }
+
+  $existing = (Invoke-CF GET "/zones/$Zone/dns_records?type=$Type&name=$fqdn").result
+
+  # Exact match already present — nothing to do.
+  if ($existing | Where-Object { $_.content -eq $Content }) {
+    Ok "$Type $fqdn already set"; return
+  }
+
+  # Same (type,name) but different content: update rather than duplicate —
+  # except TXT and CAA, where multiple values on one name are meaningful.
+  if ($Type -ne 'TXT' -and $Type -ne 'CAA' -and $existing.Count -gt 0) {
+    Invoke-CF PATCH "/zones/$Zone/dns_records/$($existing[0].id)" $body | Out-Null
+    Ok "$Type $fqdn updated -> $Content"; return
+  }
+
+  Invoke-CF POST "/zones/$Zone/dns_records" $body | Out-Null
+  Ok "$Type $fqdn created -> $Content"
+}
+
+# --------------------------------------------------------------------------
+# Phases
+# --------------------------------------------------------------------------
+
+function Phase-DnsWww {
+  Step "www placeholder records"
+  # The site is served from a Workers Custom Domain on the apex. www needs no
+  # origin — only to be proxied, so the zone redirect rule can intercept it.
+  # 192.0.2.0 (TEST-NET-1) and 100:: (discard prefix) are reserved for exactly
+  # this. Both are required: with only an A record, IPv6-only clients get
+  # NXDOMAIN for www, which also fails the HSTS preload check.
+  Set-DnsRecord -Type A    -Name www -Content '192.0.2.0' -Proxied $true
+  Set-DnsRecord -Type AAAA -Name www -Content '100::'     -Proxied $true
+}
+
+function Phase-DnsEmail {
+  Step "anti-spoofing DNS (this domain sends and receives no mail)"
+
+  # RFC 7505 null MX — "accepts no mail", rejected at connection time.
+  try { Set-DnsRecord -Type MX -Name '@' -Content '.' -Priority 0 }
+  catch { Warn "null MX rejected — SPF -all and DMARC p=reject still block spoofing" }
+
+  # Hard-fail SPF: no host on earth is authorised to send as this domain.
+  Set-DnsRecord -Type TXT -Name '@' -Content 'v=spf1 -all'
+  Set-DnsRecord -Type TXT -Name '*' -Content 'v=spf1 -all'
+
+  # sp=reject because p=reject alone leaves subdomains ambiguous in some
+  # receivers. No rua=/ruf= — there is no mailbox to receive reports, and an
+  # unreachable report address is worse than none.
+  Set-DnsRecord -Type TXT -Name '_dmarc' -Content 'v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s; pct=100'
+
+  # Wildcard null DKIM: an empty p= means "revoked" (RFC 6376) for every
+  # possible selector, not just one.
+  Set-DnsRecord -Type TXT -Name '*._domainkey' -Content 'v=DKIM1; p='
+}
+
+function Phase-Tls {
+  Step "TLS"
+  # "strict" is correct with no downside here: the origin is Cloudflare's own
+  # asset layer, which always presents a valid certificate.
+  Set-Setting ssl                      'strict'
+  Set-Setting min_tls_version          '1.2'
+  Set-Setting tls_1_3                  'on'
+  Set-Setting opportunistic_encryption 'on'
+  Set-Setting automatic_https_rewrites 'on'
+  Set-Setting browser_check            'on'
+
+  # "medium", not "high". Malaysian mobile networks are heavily CGNAT'd — one
+  # bad actor behind a carrier IP raises that IP's score, and "high" would
+  # start challenging real customers trying to read the menu.
+  Set-Setting security_level 'medium'
+
+  # 0-RTT deliberately left off: it permits replay of early-data requests and
+  # buys a brochure site nothing.
+
+  Invoke-CF PATCH "/zones/$Zone/ssl/universal/settings" @{ enabled = $true } | Out-Null
+  Ok "Universal SSL enabled"
+}
+
+function Phase-WaitCert {
+  Step "waiting for Universal SSL to issue"
+  for ($i = 1; $i -le 60; $i++) {
+    $packs  = (Invoke-CF GET "/zones/$Zone/ssl/certificate_packs?status=all").result
+    $status = ($packs | Where-Object { $_.type -eq 'universal' } | Select-Object -First 1).status
+    if ($status -eq 'active') { Ok "certificate active"; return }
+    Write-Host "  ... $status ($i/60)`r" -NoNewline
+    Start-Sleep -Seconds 10
+  }
+  Die "certificate did not become active — do NOT run https-on or caa yet"
+}
+
+function Phase-HttpsOn {
+  Step "force HTTPS"
+  # Only safe once the certificate is active: earlier, this redirects visitors
+  # to an HTTPS URL that fails the handshake.
+  Set-Setting always_use_https 'on'
+}
+
+function Phase-Caa {
+  Step "CAA"
+  # Cloudflare's Universal SSL partners are Let's Encrypt, Google Trust
+  # Services and SSL.com. On Free you cannot pin which is used and Cloudflare
+  # may rotate, so all three must be authorised.
+  #
+  # issuewild is NOT optional: the certificate carries a *.suriani.rest SAN,
+  # and issue-without-issuewild blocks issuance outright.
+  #
+  # Additive only. Cloudflare maintains its own CAA entries; a
+  # reconcile-to-exact-list implementation would delete them and break renewal.
+  foreach ($ca in @('letsencrypt.org', 'pki.goog; cansignhttpexchanges=yes', 'ssl.com')) {
+    Set-DnsRecord -Type CAA -Name '@' -Content "0 issue `"$ca`""
+    Set-DnsRecord -Type CAA -Name '@' -Content "0 issuewild `"$ca`""
+  }
+  Warn "verify with: nslookup -type=CAA $Domain"
+}
+
+function Phase-Waf {
+  Step "WAF custom rules"
+
+  # Every expression uses starts_with/ends_with/in rather than regex. The
+  # `matches` operator is Business plan and above — any recipe using regex is
+  # simply rejected on Free.
+  #
+  # The /.well-known/ exclusion is load-bearing: Cloudflare uses HTTP DCV at
+  # /.well-known/pki-validation/... for certificate renewal, and a rule
+  # blocking all dot-prefixed paths breaks renewal ~60 days later.
+  $probe = @(
+    '/wp-', '/wordpress', '/xmlrpc.php', '/.git', '/.env', '/.svn', '/.aws',
+    '/.ssh', '/admin', '/administrator', '/phpmyadmin', '/cgi-bin', '/vendor/', '/actuator'
+  ) | ForEach-Object { "starts_with(lower(http.request.uri.path), `"$_`")" }
+
+  $ext = @(
+    '.php', '.asp', '.aspx', '.jsp', '.sql', '.bak', '.old', '.ini', '.env'
+  ) | ForEach-Object { "ends_with(lower(http.request.uri.path), `"$_`")" }
+
+  $expr = '(not starts_with(http.request.uri.path, "/.well-known/")) and (' +
+          (($probe + $ext) -join ' or ') + ')'
+
+  Invoke-CF PUT "/zones/$Zone/rulesets/phases/http_request_firewall_custom/entrypoint" @{
+    rules = @(
+      @{ description = 'Block scanner and exploit probe paths'; action = 'block'; enabled = $true; expression = $expr },
+      @{ description = 'Block write methods (site is 100% static)'; action = 'block'; enabled = $true
+         expression = '(not http.request.method in {"GET" "HEAD" "OPTIONS"})' }
+    )
+  } | Out-Null
+  Ok "2 custom rules deployed (Free allows 5 — 3 left in reserve)"
+
+  Step "rate limiting"
+  # Scoped to documents, not all requests: one page load fires about a dozen
+  # requests, so an all-requests cap trips after a handful of page views.
+  # cf.colo.id is mandatory in characteristics on non-Enterprise plans.
+  # 60/min is deliberately generous because of carrier CGNAT.
+  Invoke-CF PUT "/zones/$Zone/rulesets/phases/http_ratelimit/entrypoint" @{
+    rules = @(
+      @{ description = 'Per-IP cap on page requests'; action = 'block'; enabled = $true
+         expression  = '(http.request.uri.path eq "/" or ends_with(http.request.uri.path, ".html"))'
+         ratelimit   = @{
+           characteristics     = @('ip.src', 'cf.colo.id')
+           period              = 60
+           requests_per_period = 60
+           mitigation_timeout  = 60
+           requests_to_origin  = $false
+         } }
+    )
+  } | Out-Null
+  Ok "rate limit: 60 page requests / minute / IP"
+
+  Step "www -> apex redirect"
+  try {
+    Invoke-CF PUT "/zones/$Zone/rulesets/phases/http_request_dynamic_redirect/entrypoint" @{
+      rules = @(
+        @{ description = '301 www to apex'; action = 'redirect'; enabled = $true
+           expression  = "(http.host eq `"www.$Domain`")"
+           action_parameters = @{
+             from_value = @{
+               status_code = 301
+               target_url  = @{ expression = "concat(`"https://$Domain`", http.request.uri.path)" }
+               preserve_query_string = $true
+             }
+           } }
+      )
+    } | Out-Null
+    Ok "www.$Domain -> $Domain (301)"
+  } catch {
+    Warn "redirect rule failed — the token is probably missing Dynamic URL Redirects."
+    Warn "Add it in the dashboard instead: Rules -> Redirect Rules -> Create."
+    Warn "Everything else in this phase succeeded."
+  }
+
+  Step "managed rules"
+  # The full Cloudflare Managed Ruleset is Pro+. Free zones get the curated
+  # "Cloudflare Free Managed Ruleset", deployed automatically — nothing to
+  # create, so this only reports.
+  try {
+    Invoke-CF GET "/zones/$Zone/rulesets/phases/http_request_firewall_managed/entrypoint" | Out-Null
+    Ok "managed ruleset entrypoint present"
+  } catch {
+    Ok "no managed entrypoint (normal on Free — the free ruleset still runs)"
+  }
+}
+
+function Phase-Bots {
+  Step "Bot Fight Mode"
+  Invoke-CF PUT "/zones/$Zone/bot_management" @{ fight_mode = $true } | Out-Null
+  Ok "enabled"
+  Warn "NOW TEST BOTH, and disable if either fails:"
+  Warn "  1. paste https://$Domain into a WhatsApp chat — the preview must render"
+  Warn "  2. Search Console -> URL Inspection -> Test Live URL — must succeed"
+  Warn "On Free, Bot Fight Mode cannot be skipped for specific bots. WhatsApp"
+  Warn "previews are this restaurant's main channel, so a false positive costs"
+  Warn "real customers. Roll back by re-running with fight_mode false."
+}
+
+function Phase-Hsts {
+  param([string]$Stage)
+  $cfg = switch ($Stage) {
+    '1' { @{ age = 300;      inc = $false; pre = $false } }
+    '2' { @{ age = 86400;    inc = $true;  pre = $false } }
+    '3' { @{ age = 31536000; inc = $true;  pre = $true  } }
+    default { Die "usage: .\scripts\cloudflare-setup.ps1 hsts 1|2|3  (5 min / 1 day / 1 year+preload)" }
+  }
+
+  Step "HSTS stage $Stage (max-age=$($cfg.age), includeSubDomains=$($cfg.inc), preload=$($cfg.pre))"
+
+  # Staged on purpose. Preload is submitted to a browser-vendor list and takes
+  # months to reverse — if www or the apex ever fails TLS afterwards, the site
+  # is unreachable with no way to click through.
+  #
+  # nosniff is false because _headers already sets X-Content-Type-Options on
+  # asset responses; setting both emits it twice.
+  Invoke-CF PATCH "/zones/$Zone/settings/security_header" @{
+    value = @{ strict_transport_security = @{
+      enabled = $true; max_age = $cfg.age
+      include_subdomains = $cfg.inc; preload = $cfg.pre; nosniff = $false } }
+  } | Out-Null
+  Ok "applied"
+
+  switch ($Stage) {
+    '1' { Warn "verify, then wait ~24h before stage 2" }
+    '2' { Warn "confirm https://www.$Domain serves a valid cert, then wait ~1 week" }
+    '3' { Warn "now submit at https://hstspreload.org — this is hard to undo" }
+  }
+}
+
+function Phase-SearchConsole {
+  param([string]$Token)
+  if (-not $Token) {
+    Die @"
+usage: .\scripts\cloudflare-setup.ps1 search-console <token>
+  Search Console -> Add property -> Domain shows a TXT record like
+  'google-site-verification=abc123...'. Pass only the token part.
+"@
+  }
+  Step "Google Search Console verification"
+  # DNS verification registers a Domain property covering apex, www and every
+  # subdomain at once, and unlike an HTML file it survives a redeploy.
+  Set-DnsRecord -Type TXT -Name '@' -Content "google-site-verification=$Token"
+  Warn "now click Verify in Search Console (DNS can take a few minutes)"
+}
+
+function Phase-Hold {
+  Step "zone hold"
+  # Stops anyone else adding this domain to a different Cloudflare account,
+  # which is a real takeover vector.
+  Invoke-CF POST "/zones/$Zone/hold?include_subdomains=true" | Out-Null
+  Ok "zone hold enabled"
+}
+
+function Phase-Verify {
+  Step "current state"
+  foreach ($s in 'ssl','min_tls_version','tls_1_3','always_use_https',
+                 'automatic_https_rewrites','opportunistic_encryption',
+                 'browser_check','security_level') {
+    $v = (Invoke-CF GET "/zones/$Zone/settings/$s").result.value
+    Say ("{0,-28} {1}" -f $s, $v)
+  }
+
+  $h = (Invoke-CF GET "/zones/$Zone/settings/security_header").result.value.strict_transport_security
+  Say ("{0,-28} enabled={1} max_age={2} subdomains={3} preload={4}" -f 'hsts', $h.enabled, $h.max_age, $h.include_subdomains, $h.preload)
+
+  try {
+    $b = (Invoke-CF GET "/zones/$Zone/bot_management").result.fight_mode
+    Say ("{0,-28} {1}" -f 'bot fight mode', $b)
+  } catch { Say ("{0,-28} n/a" -f 'bot fight mode') }
+
+  $cert = ((Invoke-CF GET "/zones/$Zone/ssl/certificate_packs?status=all").result |
+           Where-Object { $_.type -eq 'universal' } | Select-Object -First 1).status
+  Say ("{0,-28} {1}" -f 'certificate', $cert)
+
+  Step "DNS"
+  (Invoke-CF GET "/zones/$Zone/dns_records?per_page=100").result |
+    Sort-Object type, name |
+    ForEach-Object { Say ("{0,-6} {1,-34} {2}  proxied={3}" -f $_.type, $_.name, $_.content, $_.proxied) }
+
+  Step "rulesets"
+  foreach ($p in 'http_request_firewall_custom','http_ratelimit','http_request_dynamic_redirect') {
+    Say $p
+    try {
+      $rules = (Invoke-CF GET "/zones/$Zone/rulesets/phases/$p/entrypoint").result.rules
+      if ($rules) { $rules | ForEach-Object { Say "    - $($_.description) [$($_.action)]" } }
+      else { Say "    (none)" }
+    } catch { Say "    (none)" }
+  }
+}
+
+# --------------------------------------------------------------------------
+
+if (-not $Phase) {
+  Get-Help $PSCommandPath -Detailed
+  exit 1
+}
+if (-not $env:CF_API_TOKEN) { Die 'CF_API_TOKEN is not set' }
+
+$Zone = Resolve-Zone
+Write-Host "zone $Domain ($Zone)" -ForegroundColor DarkGray
+
+switch ($Phase) {
+  'dns-www'        { Phase-DnsWww }
+  'dns-email'      { Phase-DnsEmail }
+  'tls'            { Phase-Tls }
+  'wait-cert'      { Phase-WaitCert }
+  'https-on'       { Phase-HttpsOn }
+  'caa'            { Phase-Caa }
+  'waf'            { Phase-Waf }
+  'bots'           { Phase-Bots }
+  'hsts'           { Phase-Hsts $Arg }
+  'search-console' { Phase-SearchConsole $Arg }
+  'hold'           { Phase-Hold }
+  'verify'         { Phase-Verify }
+  default          { Die "unknown phase '$Phase'" }
+}

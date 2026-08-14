@@ -100,7 +100,30 @@ worth more than a reviewable pipeline that is one line long.
 
 ### Phase 4 — zone configuration
 
-Create a scoped API token first (permissions below), then:
+Create a scoped API token first (permissions below), then run the phases in
+order. Two equivalent scripts ship — use whichever suits your machine.
+
+**Windows (PowerShell, no dependencies):**
+
+```powershell
+$env:CF_API_TOKEN = "..."
+
+.\scripts\cloudflare-setup.ps1 dns-www      # proxied www placeholders
+.\scripts\cloudflare-setup.ps1 dns-email    # null MX, SPF, DMARC, null DKIM
+.\scripts\cloudflare-setup.ps1 tls          # SSL strict, TLS 1.2+, HTTPS rewrites
+.\scripts\cloudflare-setup.ps1 wait-cert    # blocks until Universal SSL is active
+.\scripts\cloudflare-setup.ps1 https-on     # always_use_https  (needs the cert)
+.\scripts\cloudflare-setup.ps1 caa          # CAA records       (needs the cert)
+.\scripts\cloudflare-setup.ps1 waf          # firewall + rate limit + www redirect
+.\scripts\cloudflare-setup.ps1 bots         # Bot Fight Mode — then test, see below
+.\scripts\cloudflare-setup.ps1 hold         # anti-hijack zone hold
+.\scripts\cloudflare-setup.ps1 verify       # read-only report
+```
+
+If PowerShell refuses to run it, allow it for that session only:
+`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+**macOS / Linux / WSL (bash, needs `curl` and `jq`):**
 
 ```sh
 export CF_API_TOKEN=...
