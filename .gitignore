@@ -7,3 +7,6 @@ Thumbs.db
 # tooling
 node_modules/
 *.tgz
+
+# wrangler local dev state (miniflare cache, observability store)
+.wrangler/
