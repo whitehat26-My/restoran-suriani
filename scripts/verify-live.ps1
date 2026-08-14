@@ -18,6 +18,11 @@
 
 param([string]$Domain = 'suriani.rest')
 
+try {
+  [Net.ServicePointManager]::SecurityProtocol =
+    [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+} catch { }
+
 $pass = 0; $fail = 0
 
 function Head ($m) { Write-Host "`n== $m" -ForegroundColor DarkGray }
@@ -28,20 +33,40 @@ function Check {
 }
 
 function Get-Head {
-  # -UseBasicParsing stops Windows PowerShell 5.1 handing the response to the
-  # legacy Internet Explorer DOM parser, which prompts "Script Execution Risk"
-  # on every call. It is the default on PowerShell 7 and accepted there too.
+  # HttpWebRequest rather than Invoke-WebRequest. With AllowAutoRedirect off,
+  # a 3xx comes back as an ordinary response, so redirects are observable.
+  # Invoke-WebRequest -MaximumRedirection 0 instead throws an error that on
+  # Windows PowerShell 5.1 carries no .Response, which made every redirect
+  # look like a total failure rather than the 301 it actually was.
   param([string]$Url)
+
+  $headersOf = {
+    param($resp)
+    $h = @{}
+    try { foreach ($k in $resp.Headers.AllKeys) { $h[$k] = $resp.Headers[$k] } } catch { }
+    return $h
+  }
+
   try {
-    $r = Invoke-WebRequest -Uri $Url -Method Head -MaximumRedirection 0 -UseBasicParsing -ErrorAction Stop
-    return @{ Code = [int]$r.StatusCode; Headers = $r.Headers }
-  } catch {
+    $req = [System.Net.HttpWebRequest]::Create($Url)
+    $req.Method          = 'HEAD'
+    $req.AllowAutoRedirect = $false
+    $req.UserAgent       = 'suriani-verify'
+    $req.Timeout         = 20000
+    $resp = $req.GetResponse()
+    $out  = @{ Code = [int]$resp.StatusCode; Headers = (& $headersOf $resp) }
+    $resp.Close()
+    return $out
+  } catch [System.Net.WebException] {
+    # 4xx and 5xx arrive here; the response object still carries what we need.
     $resp = $_.Exception.Response
     if ($resp) {
-      $h = @{}
-      try { foreach ($k in $resp.Headers) { $h[$k] = $resp.Headers[$k] } } catch { }
-      return @{ Code = [int]$resp.StatusCode; Headers = $h }
+      $out = @{ Code = [int]$resp.StatusCode; Headers = (& $headersOf $resp) }
+      $resp.Close()
+      return $out
     }
+    return @{ Code = 0; Headers = @{} }
+  } catch {
     return @{ Code = 0; Headers = @{} }
   }
 }
@@ -132,10 +157,29 @@ Check "wildcard DKIM answers as revoked" (($dkim.Strings -join ' ') -match 'p=\s
 $mx = Dns $Domain 'MX'
 Check "null MX published" ($null -ne $mx)
 
+# Resolve-DnsName's handling of CAA varies by Windows build -- some return
+# typed objects, some an opaque blob. Try several readings before concluding
+# anything, and report "unverified" rather than "missing" if none work: a
+# false alarm here would send someone chasing records that do exist.
+$caaTxt = ''
 $caa = Dns $Domain 'CAA'
-$caaTxt = ($caa | ForEach-Object { "$($_.Tag) $($_.Value)" }) -join ' | '
-Check "CAA present"        ($null -ne $caa)
-Check "  includes issuewild -- the cert carries a wildcard SAN" ($caaTxt -match 'issuewild')
+if ($caa) {
+  $caaTxt = (($caa | ForEach-Object {
+    @($_.Tag, $_.Value, $_.Text, $_.Strings, $_.ToString()) -join ' '
+  }) -join ' | ')
+}
+if ($caaTxt -notmatch 'issue') {
+  try { $caaTxt = (nslookup -type=CAA $Domain 2>&1 | Out-String) } catch { }
+}
+
+if ($caaTxt -match 'issue') {
+  Check "CAA present" $true
+  Check "  includes issuewild -- the cert carries a wildcard SAN" ($caaTxt -match 'issuewild')
+} else {
+  Write-Host "  [--]   CAA could not be read by this resolver -- not necessarily missing." -ForegroundColor Yellow
+  Write-Host "         Windows support for CAA lookups is inconsistent. Confirm with:" -ForegroundColor Yellow
+  Write-Host "           https://dnsviz.net/d/$Domain/dnssec/  or  nslookup -type=CAA $Domain 8.8.8.8" -ForegroundColor Yellow
+}
 
 # --- summary ----------------------------------------------------------------
 Write-Host ""
