@@ -16,6 +16,7 @@
 #   6. caa        CAA records                             (needs step 4)
 #   7. waf        custom firewall rules + rate limiting + www->apex redirect
 #   8. bots       Bot Fight Mode — then TEST WHATSAPP PREVIEWS
+#                 (bots-off reverts it)
 #   9. hsts 1|2|3 staged HSTS rollout, days apart
 #  10. hold       zone hold (anti-hijack)
 #      search-console <token>   Google Search Console DNS verification
@@ -349,9 +350,30 @@ phase_waf() {
   fi
 }
 
+# set_fight_mode true|false -- this endpoint is a whole-object PUT whose
+# required fields vary by plan and have grown over time (ai_bots_protection
+# and crawler_protection are recent additions). Sending only fight_mode
+# returns a bare "10400 Bad Request" naming nothing, so read the current
+# config, flip the one field, and write it all back.
+set_fight_mode() {
+  local want="$1" current body
+  current=$(cf GET "/zones/$ZONE/bot_management") || return 1
+  body=$(jq -c --argjson f "$want" '
+    .result
+    | del(.using_latest_model, .stale_zone_configuration)
+    | .fight_mode = $f
+    | if has("ai_bots_protection") then .ai_bots_protection = "disabled" else . end
+  ' <<<"$current")
+  cf PUT "/zones/$ZONE/bot_management" "$body" >/dev/null
+}
+
 phase_bots() {
   step "Bot Fight Mode"
-  cf PUT "/zones/$ZONE/bot_management" '{"fight_mode":true}' >/dev/null
+  if ! set_fight_mode true; then
+    warn "Bot Fight Mode could not be changed from the API on this plan."
+    warn "Use the dashboard instead: Security -> Bots -> Bot Fight Mode."
+    return
+  fi
   ok "enabled"
   warn "NOW TEST BOTH OF THESE, and disable if either fails:"
   warn "  1. paste https://$DOMAIN into a WhatsApp chat — the preview card must render"
@@ -359,7 +381,12 @@ phase_bots() {
   warn "On Free, Bot Fight Mode cannot be skipped or excepted for specific"
   warn "bots. WhatsApp previews are this restaurant's main distribution"
   warn "channel, so a false positive here costs real customers."
-  warn "Roll back with: cf PUT /zones/\$ZONE/bot_management '{\"fight_mode\":false}'"
+  warn "Roll back with: ./scripts/cloudflare-setup.sh bots-off"
+}
+
+phase_bots_off() {
+  step "Bot Fight Mode -- off"
+  if set_fight_mode false; then ok "disabled"; fi
 }
 
 phase_hsts() {
@@ -465,6 +492,7 @@ main() {
     caa)        phase_caa ;;
     waf)        phase_waf ;;
     bots)       phase_bots ;;
+    bots-off)   phase_bots_off ;;
     hsts)           phase_hsts "${2:-}" ;;
     search-console) phase_search_console "${2:-}" ;;
     hold)           phase_hold ;;
