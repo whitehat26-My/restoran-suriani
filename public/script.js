@@ -5,6 +5,14 @@
 (function () {
   "use strict";
 
+  /* The brush rules under section headings draw in on scroll, but only
+     when the observer that triggers them exists — so the no-JS and
+     no-IntersectionObserver page shows the rules already drawn, never
+     hidden. Content is never gated on animation anywhere on this site. */
+  if ("IntersectionObserver" in window) {
+    document.documentElement.classList.add("draw");
+  }
+
   /* ------------------------------------------------------------------ */
   /* Configuration                                                       */
   /* ------------------------------------------------------------------ */
@@ -85,6 +93,7 @@
 
     renderMenu();
     renderDelivery();
+    renderBoard();
   }
 
   on(langToggle, "click", function () {
@@ -234,6 +243,12 @@
     var head = document.createElement("span");
     head.className = "dish-head";
 
+    /* The kitchen's own dish number, shown the way the printed menu shows
+       it. It is also how staff recognise an order, so it earns its place. */
+    var code = document.createElement("span");
+    code.className = "dish-code";
+    code.textContent = item.code || "";
+
     var name = document.createElement("span");
     name.className = "dish-name";
     name.textContent = item[currentLang];
@@ -246,6 +261,7 @@
     price.className = "dish-price" + (typeof item.price === "number" ? "" : " price-unknown");
     price.textContent = formatPrice(item, currentLang);
 
+    head.appendChild(code);
     head.appendChild(name);
     head.appendChild(leader);
     head.appendChild(price);
@@ -314,6 +330,12 @@
   function openModal(item) {
     if (!modal) return;
     lastFocused = document.activeElement;
+
+    var codeEl = $("modal-code");
+    if (codeEl) {
+      codeEl.textContent = item.code || "";
+      codeEl.hidden = !item.code;
+    }
 
     renderMedia($("modal-icon"), item);
 
@@ -499,6 +521,138 @@
     frame.setAttribute("allowfullscreen", "");
     mapFacade.parentNode.replaceChild(frame, mapFacade);
   });
+
+  /* ------------------------------------------------------------------ */
+  /* The board: menu highlights that follow the clock                    */
+  /* ------------------------------------------------------------------ */
+
+  /* Four dishes pinned to the maroon board, chosen by the hour. A 24-hour
+     kitchen is the one fact competitors cannot copy, so the homepage
+     quietly demonstrates it instead of claiming it. Codes reference real
+     entries in menu-data.js; a code that stops existing is skipped, so a
+     menu edit can never break the board. */
+  var BOARD_SETS = {
+    sarapan: {
+      ms: "Untuk sarapan pagi ini",
+      en: "For breakfast this morning",
+      codes: ["NL01", "B02", "B01", "B03"],
+      star: "NL01"
+    },
+    tengahari: {
+      ms: "Untuk makan tengah hari",
+      en: "For lunch today",
+      codes: ["NA01", "SNP01", "ST01", "MD03"],
+      star: "NA01"
+    },
+    malam: {
+      ms: "Untuk makan malam",
+      en: "For dinner tonight",
+      codes: ["WF01", "WF03", "P01", "NA02"],
+      star: "WF01"
+    },
+    lewat: {
+      ms: "Pukul 3 pagi? Kami buka.",
+      en: "3 a.m.? We’re open.",
+      codes: ["MD19", "MD02", "SD03", "B02"],
+      star: "MD19"
+    }
+  };
+
+  function boardWindow(hour) {
+    if (hour >= 6 && hour < 11) return "sarapan";
+    if (hour >= 11 && hour < 17) return "tengahari";
+    if (hour >= 17) return "malam";
+    return "lewat";
+  }
+
+  function findByCode(code) {
+    if (!hasMenuData) return null;
+    for (var i = 0; i < MENU_ITEMS.length; i++) {
+      if (MENU_ITEMS[i].code === code) return MENU_ITEMS[i];
+    }
+    return null;
+  }
+
+  function renderBoard() {
+    var grid = $("board-grid");
+    var title = $("board-title");
+    if (!grid || !hasMenuData) return;
+
+    var set = BOARD_SETS[boardWindow(new Date().getHours())];
+    if (title) title.textContent = set[currentLang];
+
+    clear(grid);
+
+    set.codes.forEach(function (code) {
+      var item = findByCode(code);
+      if (!item) return;
+
+      var card = document.createElement("button");
+      card.type = "button";
+      card.className = "board-card";
+
+      if (code === set.star) {
+        var star = document.createElement("span");
+        star.className = "stamp";
+        star.textContent = currentLang === "ms" ? "Paling laku" : "Best seller";
+        card.appendChild(star);
+      }
+
+      var codeEl = document.createElement("span");
+      codeEl.className = "board-card-code";
+      codeEl.textContent = item.code;
+
+      /* Menu names are category-relative — "Biasa" under Nasi Lemak, "Sup"
+         under Mee & Bihun. Alone on a chit they read as nonsense, so every
+         chit names its category. It also teaches the code system. */
+      var cat = MENU_CATEGORIES.filter(function (c) { return c.id === item.category; })[0];
+      var catEl = document.createElement("span");
+      catEl.className = "board-card-cat";
+      catEl.textContent = cat ? cat[currentLang] : "";
+
+      var nameEl = document.createElement("span");
+      nameEl.className = "board-card-name";
+      nameEl.textContent = item[currentLang];
+
+      var descEl = document.createElement("span");
+      descEl.className = "board-card-desc";
+      descEl.textContent = item["desc" + (currentLang === "ms" ? "Ms" : "En")] || "";
+
+      var priceEl = document.createElement("span");
+      priceEl.className = "board-card-price" + (typeof item.price === "number" ? "" : " price-unknown");
+      priceEl.textContent = formatPrice(item, currentLang);
+
+      card.appendChild(codeEl);
+      card.appendChild(catEl);
+      card.appendChild(nameEl);
+      card.appendChild(descEl);
+      card.appendChild(priceEl);
+
+      on(card, "click", function () { openModal(item); });
+      grid.appendChild(card);
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Brush rules draw in as their headings enter the viewport            */
+  /* ------------------------------------------------------------------ */
+
+  /* Decoration only — the heading text is always visible; only the gold
+     stroke beneath it animates. The html.draw gate at the top of this file
+     guarantees the rules render fully drawn wherever this cannot run. */
+  if ("IntersectionObserver" in window) {
+    var drawObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("drawn");
+          drawObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    var heads = document.querySelectorAll(".section h2");
+    for (var h = 0; h < heads.length; h++) drawObserver.observe(heads[h]);
+  }
 
   /* ------------------------------------------------------------------ */
   /* Boot                                                                */

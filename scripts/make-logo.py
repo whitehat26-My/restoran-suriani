@@ -28,7 +28,7 @@ from fontTools.pens.transformPen import TransformPen
 from fontTools.misc.transform import Transform
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-FR = ROOT / "public/assets/fonts/fraunces-latin-var.woff2"
+FR = ROOT / "public/assets/fonts/fraunces-latin-var-2.woff2"
 FG = ROOT / "public/assets/fonts/figtree-latin-var.woff2"
 
 def load(path, **axes):

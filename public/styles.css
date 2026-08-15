@@ -14,12 +14,17 @@
    Licence; the licences ship alongside in assets/fonts/.
    ----------------------------------------------------------------------- */
 
+/* Re-cut 15 Aug 2026: same 65KB, but the WONK axis is kept (SOFT pinned to
+   its default of 0 by varLib.instancer, which is what pays for it). WONK is
+   Fraunces' designed-in letterform irregularity — the closest a typeface
+   gets to a signwriter's hand, used on display sizes only. New filename
+   because fonts are cached immutable for a year. */
 @font-face {
   font-family: "Fraunces";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url("/assets/fonts/fraunces-latin-var.woff2") format("woff2");
+  src: url("/assets/fonts/fraunces-latin-var-2.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
     U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC,
     U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
@@ -68,9 +73,29 @@
   --ink-faint: #8a7461;
   --surface: #fffdf7;
   --surface-alt: #f8edd4;
+  --surface-deep: #f0e2bf;   /* hover ground for menu rows */
   --rule: #e4d5b0;
   --rule-strong: #d3bd8c;
-  --whatsapp: #1d9e53;       /* darkened from #25D366 for 3:1 on white text */
+
+  /* Signboard II — accents named from the kitchen, each with one job.
+     All ratios measured against cream: sambal 6.9:1, pandan 6.9:1,
+     teh tarik 5.4:1. */
+  --sambal: #9c2f14;         /* the emphasis accent: stamps, primary buttons */
+  --sambal-deep: #7f240e;    /* its hover state */
+  --pandan: #3f5d3a;         /* means "open now" and nothing else */
+  --pandan-bright: #7cb668;  /* the open-dot on maroon, where dark pandan vanishes */
+  --teh: #8a5a2b;            /* captions, marginalia, dish codes */
+
+  /* Paper grain, generated: one inline SVG noise tile, ~300 bytes, no
+     request. --grain-ink sits on cream surfaces, --grain-gold on maroon.
+     Loaded via CSS so it is governed by img-src 'self' data: in the CSP. */
+  --grain-ink: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.18 0 0 0 0 0.11 0 0 0 0 0.05 0 0 0 0.045 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.84 0 0 0 0 0.55 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+
+  /* The brush rule: a drawn stroke that wavers ~2px over its run, the way
+     the gold rule on the physical signboard does. Replaces perfect 1px
+     borders as the section divider. */
+  --brush-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='8' viewBox='0 0 120 8'%3E%3Cpath d='M2 5 Q 18 2.5 33 4.5 T 62 4.5 T 90 4.5 T 118 4' fill='none' stroke='%23e8b923' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
 
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -111,7 +136,8 @@ html {
 
 body {
   margin: 0;
-  background: var(--cream);
+  background-color: var(--cream);
+  background-image: var(--grain-ink);
   color: var(--text-dark);
   font-family: var(--font-sans);
   font-size: var(--step-0);
@@ -139,6 +165,14 @@ h1, h2, h3 {
   letter-spacing: -0.015em;
   text-wrap: balance;
   margin: 0 0 0.5em;
+}
+
+/* The display voice runs with WONK on: Fraunces' designed-in letterform
+   irregularity, restored in the 15 Aug font re-cut. Only the named axis is
+   overridden — optical sizing stays automatic. Display sizes only; at h3
+   size and below the waver reads as noise. */
+h1, h2, .brand-name {
+  font-variation-settings: "WONK" 1;
 }
 
 h1 { font-size: var(--step-4); font-weight: 600; }
@@ -359,6 +393,7 @@ a { color: inherit; }
 
 .hero {
   background:
+    var(--grain-gold),
     radial-gradient(120% 90% at 15% 0%, rgba(154, 26, 43, 0.55) 0%, transparent 60%),
     linear-gradient(165deg, var(--maroon-dark) 0%, #3a0810 100%);
   color: var(--cream);
@@ -407,17 +442,20 @@ a { color: inherit; }
   margin-bottom: 1.75rem;
 }
 
+/* Pandan means "open now" and nothing else on this site. This is the only
+   perpetual motion on the whole page — scarcity is what keeps it alive
+   rather than busy. */
 .open-dot {
   width: 9px; height: 9px;
   border-radius: 50%;
-  background: #46d17f;
-  box-shadow: 0 0 0 0 rgba(70, 209, 127, 0.65);
+  background: var(--pandan-bright);
+  box-shadow: 0 0 0 0 rgba(124, 182, 104, 0.65);
   animation: pulse 2.4s ease-out infinite;
 }
 
 @keyframes pulse {
-  70% { box-shadow: 0 0 0 9px rgba(70, 209, 127, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(70, 209, 127, 0); }
+  70% { box-shadow: 0 0 0 9px rgba(124, 182, 104, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(124, 182, 104, 0); }
 }
 
 .hero-actions {
@@ -444,7 +482,15 @@ a { color: inherit; }
   }
 }
 
-.hero-figure { margin: 0; }
+/* The board leans in: the arch-masked photo sits at a slight tilt, the way
+   things genuinely hang in the physical world. The one off-grid move this
+   scene gets. The caption counter-rotates so the label stays a label. */
+.hero-figure {
+  margin: 0;
+  transform: rotate(1.8deg);
+}
+
+.hero-figcaption { transform: rotate(-1.8deg); }
 
 .hero-arch img {
   width: 100%;
@@ -486,15 +532,16 @@ a { color: inherit; }
 
 .btn-icon { width: 18px; height: 18px; flex: none; }
 
-/* WhatsApp is the restaurant's actual ordering channel, so it keeps its
-   brand green — but darkened to #1d9e53 so white text clears 3:1, and set
-   in a square-ish button so it sits with the maroon rather than shouting. */
+/* WhatsApp green left the palette in Signboard II. The channel is still
+   WhatsApp — the glyph says so — but the button wears the brand's own
+   sambal, so Meta's colour no longer holds the page. White on sambal
+   measures 6.9:1. */
 .btn-whatsapp {
-  background: var(--whatsapp);
+  background: var(--sambal);
   color: var(--white);
 }
 
-.btn-whatsapp:hover { background: #178645; }
+.btn-whatsapp:hover { background: var(--sambal-deep); }
 
 .btn-outline {
   background: transparent;
@@ -566,7 +613,10 @@ a { color: inherit; }
 /* --- Sections ----------------------------------------------------------- */
 
 .section { padding-block: clamp(3.5rem, 8vw, 6rem); }
-.section-alt { background: var(--surface-alt); }
+.section-alt {
+  background-color: var(--surface-alt);
+  background-image: var(--grain-ink);
+}
 
 .section-eyebrow {
   font-size: 0.72rem;
@@ -678,11 +728,11 @@ a { color: inherit; }
 .menu-rail::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 3px; }
 
 .menu-tab {
+  position: relative;
   flex: none;
   scroll-snap-align: start;
   background: none;
   border: 0;
-  border-bottom: 2px solid transparent;
   padding: 0.5rem 0.85rem;
   font: inherit;
   font-size: 0.9rem;
@@ -690,16 +740,30 @@ a { color: inherit; }
   color: var(--ink-muted);
   white-space: nowrap;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease;
+  transition: color 0.18s ease;
 }
 
 .menu-tab:hover { color: var(--maroon); }
 
+/* The active tab's underline draws in from the left rather than blinking
+   on — continuity between states reads as craft. */
+.menu-tab::after {
+  content: "";
+  position: absolute;
+  left: 0.85rem; right: 0.85rem; bottom: 0;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s ease;
+}
+
 .menu-tab.active {
   color: var(--maroon-dark);
   font-weight: 700;
-  border-bottom-color: var(--gold);
 }
+
+.menu-tab.active::after { transform: scaleX(1); }
 
 .menu-category-note {
   font-size: 0.85rem;
@@ -732,7 +796,18 @@ a { color: inherit; }
   transition: background 0.16s ease;
 }
 
-.dish:hover { background: rgba(232, 185, 35, 0.08); }
+.dish:hover { background: var(--surface-deep); }
+
+/* The kitchen's own dish numbering, promoted from data to design. */
+.dish-code {
+  flex: none;
+  align-self: center;
+  min-width: 3.4em;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--teh);
+}
 
 .dish-thumb {
   grid-row: span 2;
@@ -780,7 +855,19 @@ a { color: inherit; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--maroon);
+  /* On hover a gold-ink underline draws itself beneath the price, left to
+     right — the row answers your touch the way a laminated card catches
+     light. Decoration only; the price is always readable. */
+  background-image: linear-gradient(var(--gold-ink), var(--gold-ink));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  transition: background-size 0.22s ease;
+  padding-bottom: 2px;
 }
+
+.dish:hover .dish-price,
+.dish:focus-visible .dish-price { background-size: 100% 2px; }
 
 .dish-price.price-unknown {
   font-size: 0.78rem;
@@ -980,12 +1067,21 @@ a { color: inherit; }
 
 .gallery-item img:hover { transform: scale(1.03); filter: saturate(1) contrast(1.06) brightness(1.04); }
 
+/* Captions in a handwritten register — Fraunces at its smallest optical
+   size, italic, teh-tarik brown. They read as notes on the back of a
+   photograph, which turns honest phone shots into testimony. */
 .gallery-item figcaption {
   margin-top: 0.6rem;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-faint);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-variation-settings: "opsz" 9;
+  font-size: 0.92rem;
+  font-weight: 480;
+  letter-spacing: 0.01em;
+  color: var(--teh);
 }
+
+.gallery-item figcaption::before { content: "— "; color: var(--rule-strong); }
 
 .gallery-item-detail figcaption { padding: 0 0.5rem 0.5rem; }
 
@@ -1079,7 +1175,8 @@ a { color: inherit; }
 /* --- Footer ------------------------------------------------------------- */
 
 .site-footer {
-  background: var(--maroon-dark);
+  background-color: var(--maroon-dark);
+  background-image: var(--grain-gold);
   color: rgba(253, 246, 227, 0.72);
   padding-top: clamp(2.5rem, 6vw, 4rem);
   font-size: 0.92rem;
@@ -1142,17 +1239,41 @@ a { color: inherit; }
   backdrop-filter: blur(3px);
 }
 
+/* The dish modal is styled as an order chit — the slip of paper the kitchen
+   actually works from. Grained paper, the dish code stamped across the top,
+   dashed tear-lines between zones. */
 .modal-card {
   position: relative;
   width: min(440px, 100%);
   max-height: 88vh;
   overflow-y: auto;
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 2.25rem 1.75rem 1.75rem;
+  background-color: var(--surface);
+  background-image: var(--grain-ink);
+  border-radius: var(--radius-sm);
+  padding: 1.5rem 1.75rem 1.75rem;
   text-align: center;
   box-shadow: var(--shadow-3);
   animation: modal-in 0.22s ease-out;
+}
+
+.modal-code {
+  font-family: var(--font-display);
+  font-variation-settings: "WONK" 1;
+  font-optical-sizing: auto;
+  font-size: 1.45rem;
+  font-weight: 640;
+  letter-spacing: 0.08em;
+  color: var(--gold-ink);
+  text-align: left;
+  margin: 0 0 1.1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 2px dashed var(--rule-strong);
+}
+
+.modal-code::before {
+  content: "\2116\00a0";   /* № */
+  font-weight: 400;
+  color: var(--ink-faint);
 }
 
 @keyframes modal-in {
@@ -1202,14 +1323,17 @@ a { color: inherit; }
 .modal-card h3 { font-size: var(--step-2); margin-bottom: 0.5rem; }
 .modal-desc { color: var(--ink-muted); font-size: 0.95rem; }
 
+/* The price zone reads as the chit's total line: dashed tear-line above,
+   set in the display face. */
 .modal-price {
   font-family: var(--font-display);
   font-optical-sizing: auto;
   font-size: var(--step-2);
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
   color: var(--maroon);
-  margin-top: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 2px dashed var(--rule-strong);
 }
 
 .modal-price.price-unknown { font-size: var(--step-0); color: var(--gold-ink); }
@@ -1225,7 +1349,9 @@ a { color: inherit; }
 /* --- 404 ---------------------------------------------------------------- */
 
 .error-page {
-  background: linear-gradient(165deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+  background:
+    var(--grain-gold),
+    linear-gradient(165deg, var(--maroon) 0%, var(--maroon-dark) 100%);
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -1272,10 +1398,258 @@ a { color: inherit; }
   margin: 0;
 }
 
+/* ==========================================================================
+   Signboard II components
+   ========================================================================== */
+
+/* --- Brush rule under section headings ----------------------------------
+   Every .section h2 carries the signboard's hand-drawn gold stroke. When
+   IntersectionObserver is available (html.draw), the stroke starts clipped
+   and draws in as the heading enters the viewport. Decoration only: the
+   heading itself is never hidden, and without JS the rule is simply there.
+   ------------------------------------------------------------------------ */
+
+.section h2::after {
+  content: "";
+  display: block;
+  width: 120px;
+  height: 8px;
+  margin-top: 0.4em;
+  background: var(--brush-gold) no-repeat 0 0 / 120px 8px;
+}
+
+html.draw .section h2::after {
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.7s ease 0.15s;
+}
+
+html.draw .section h2.drawn::after { clip-path: inset(0 0 0 0); }
+
+/* --- Rubber stamp --------------------------------------------------------
+   Facts a kopitiam would stamp, stamped: tilted, ink slightly starved by
+   three speckles of the ground showing through. Used sparingly — a stamp
+   next to another stamp is a smudge.
+   ------------------------------------------------------------------------ */
+
+.stamp {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--sambal);
+  border: 2.5px solid var(--sambal);
+  border-radius: 6px;
+  padding: 0.4rem 0.8rem 0.35rem;
+  transform: rotate(-2.5deg);
+  background-image:
+    radial-gradient(circle at 18% 30%, rgba(253, 246, 227, 0.6) 0 2px, transparent 3px),
+    radial-gradient(circle at 76% 64%, rgba(253, 246, 227, 0.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 45% 85%, rgba(253, 246, 227, 0.45) 0 1.5px, transparent 2.5px);
+}
+
+.about-lead .stamp { margin-top: 1.1rem; }
+
+/* --- The board: menu highlights that follow the clock --------------------
+   A maroon field between the story and the full menu — the menu board
+   itself. Four dishes pinned to it as cream order chits, each at its own
+   slight angle, staggered like a hand did it. Which four depends on the
+   hour: the one flex a 24-hour kitchen has that nobody else can copy.
+   ------------------------------------------------------------------------ */
+
+.section-board {
+  background:
+    var(--grain-gold),
+    linear-gradient(170deg, #56101a 0%, var(--maroon-dark) 70%);
+  border-block: 4px solid var(--gold);
+}
+
+.section-board .section-eyebrow { color: var(--gold-light); }
+
+.section-board h2 { color: var(--gold); }
+
+.section-board .board-note {
+  color: rgba(253, 246, 227, 0.72);
+  max-width: 60ch;
+  margin-bottom: 2.25rem;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.4rem;
+  align-items: stretch;
+}
+
+.board-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+  background-color: var(--cream);
+  background-image: var(--grain-ink);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 1.35rem 1.35rem 1.2rem;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-2);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Each chit hangs at its own angle; hovering one picks it up straight. */
+.board-card:nth-child(1) { transform: rotate(-1.4deg); }
+.board-card:nth-child(2) { transform: rotate(0.9deg); }
+.board-card:nth-child(3) { transform: rotate(-0.7deg); }
+.board-card:nth-child(4) { transform: rotate(1.3deg); }
+
+.board-card:hover,
+.board-card:focus-visible {
+  transform: rotate(0deg) translateY(-5px);
+  box-shadow: var(--shadow-3);
+}
+
+.section-board :focus-visible { outline-color: var(--gold); }
+
+.board-card-code {
+  font-family: var(--font-display);
+  font-variation-settings: "WONK" 1;
+  font-optical-sizing: auto;
+  font-size: 2rem;
+  font-weight: 640;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--gold-ink);
+}
+
+.board-card-cat {
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teh);
+  margin-top: 0.45rem;
+}
+
+.board-card-name {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 1.14rem;
+  font-weight: 620;
+  line-height: 1.25;
+  color: var(--maroon-dark);
+  margin-top: 0.1rem;
+}
+
+.board-card-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.board-card-price {
+  margin-top: auto;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--maroon);
+  padding-top: 0.6rem;
+  border-top: 2px dashed var(--rule-strong);
+}
+
+.board-card-price.price-unknown {
+  font-size: 0.82rem;
+  color: var(--gold-ink);
+}
+
+/* One dish per sitting earns the stamp. It overhangs the chit's corner
+   onto the board, the way a real sticker would. */
+.board-card .stamp {
+  position: absolute;
+  top: -12px;
+  right: 12px;
+  font-size: 0.62rem;
+  padding: 0.28rem 0.55rem 0.24rem;
+  transform: rotate(2.5deg);
+  background-color: var(--cream);
+}
+
+.board-cta {
+  margin: 2.25rem 0 0;
+}
+
+.section-board .btn-outline {
+  border-color: rgba(232, 185, 35, 0.55);
+  color: var(--gold);
+}
+
+.section-board .btn-outline:hover {
+  background: rgba(232, 185, 35, 0.12);
+  border-color: var(--gold);
+}
+
+/* --- Location: the fact competitors cannot copy -------------------------- */
+
+.hours-giant {
+  font-family: var(--font-display);
+  font-variation-settings: "WONK" 1;
+  font-optical-sizing: auto;
+  font-size: clamp(2.5rem, 6vw, 3.9rem);
+  font-weight: 620;
+  line-height: 1.02;
+  letter-spacing: -0.01em;
+  color: var(--maroon);
+  margin: 0.5rem 0 0.75rem;
+}
+
+.hours-giant .hours-alt { color: var(--gold-ink); }
+
+.hours-sub {
+  font-size: 0.95rem;
+  color: var(--ink-muted);
+  margin-bottom: 0.75rem;
+}
+
 /* Anchors must clear the sticky header. */
 [id] { scroll-margin-top: calc(var(--header-h) + 1rem); }
 
 /* --- Responsive --------------------------------------------------------- */
+
+@media (min-width: 961px) {
+  /* The board bleeds toward the viewport edge and rises into the header's
+     space — the photo behaves like an object, not a slot. .hero has
+     overflow:hidden, so the bleed clips cleanly. */
+  .hero-figure {
+    margin-right: calc(var(--gutter) * -1.25);
+    margin-top: -0.75rem;
+  }
+}
+
+@media (min-width: 1120px) {
+  .board-grid { grid-template-columns: repeat(4, 1fr); }
+
+  /* Staggered baselines, like chits pinned by hand. Declared after the
+     base rotations so each transform carries both parts. */
+  .board-card:nth-child(2) { transform: rotate(0.9deg) translateY(16px); }
+  .board-card:nth-child(4) { transform: rotate(1.3deg) translateY(24px); }
+
+  /* Re-assert hover inside this block: the stagger rules above share
+     specificity with the hover rule and would otherwise win by order. */
+  .board-card:hover,
+  .board-card:focus-visible { transform: rotate(0deg) translateY(-5px); }
+  .board-card:nth-child(2):hover,
+  .board-card:nth-child(2):focus-visible { transform: rotate(0deg) translateY(11px); }
+  .board-card:nth-child(4):hover,
+  .board-card:nth-child(4):focus-visible { transform: rotate(0deg) translateY(19px); }
+}
 
 @media (max-width: 960px) {
   .hero-inner { grid-template-columns: 1fr; }
