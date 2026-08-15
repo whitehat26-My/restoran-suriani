@@ -66,7 +66,7 @@ const crop = (src, pos) => `
    any crop of a storefront. Uses the site's own fonts and signboard lockup. */
 const ogCard = `
   <style>
-    @font-face{font-family:"Fraunces";src:url("${base}/assets/fonts/fraunces-latin-var.woff2") format("woff2");font-weight:100 900}
+    @font-face{font-family:"Fraunces";src:url("${base}/assets/fonts/fraunces-latin-var-2.woff2") format("woff2");font-weight:100 900}
     @font-face{font-family:"Figtree";src:url("${base}/assets/fonts/figtree-latin-var.woff2") format("woff2");font-weight:300 900}
     @font-face{font-family:"Amiri";src:url("${base}/assets/fonts/amiri-bismillah-subset.woff2") format("woff2")}
     *{margin:0;padding:0;box-sizing:border-box}
@@ -116,7 +116,7 @@ const ogCard = `
 /* A square brand tile for the Google Business Profile logo slot. */
 const logoTile = `
   <style>
-    @font-face{font-family:"Fraunces";src:url("${base}/assets/fonts/fraunces-latin-var.woff2") format("woff2");font-weight:100 900}
+    @font-face{font-family:"Fraunces";src:url("${base}/assets/fonts/fraunces-latin-var-2.woff2") format("woff2");font-weight:100 900}
     @font-face{font-family:"Figtree";src:url("${base}/assets/fonts/figtree-latin-var.woff2") format("woff2");font-weight:300 900}
     @font-face{font-family:"Amiri";src:url("${base}/assets/fonts/amiri-bismillah-subset.woff2") format("woff2")}
     *{margin:0;padding:0;box-sizing:border-box}

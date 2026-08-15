@@ -31,7 +31,7 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
 <link rel="preload" href="/assets/fonts/figtree-latin-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/assets/fonts/fraunces-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/fraunces-latin-var-2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 </head>
 <body id="top">
@@ -125,11 +125,27 @@
       <div class="about-lead">
         <p class="section-eyebrow" data-en="Our Story" data-ms="Kisah Kami">Kisah Kami</p>
         <h2 data-en="From one stall in 1986 to a Pudu institution." data-ms="Dari sebuah gerai pada 1986 kepada nadi Pudu.">Dari sebuah gerai pada 1986 kepada nadi Pudu.</h2>
+        <p class="stamp" data-en="Since 1986" data-ms="Sejak 1986">Sejak 1986</p>
       </div>
       <div class="about-body">
         <p data-en="Restoran Suriani was founded by Rodiah Ahmad, who moved to Kuala Lumpur in 1980 from her hometown of Kuala Kangsar, Perak. In 1986 she started with a modest food stall, where her home-style Malay cooking quickly earned a loyal following in the neighbourhood. Building on that, she opened Restoran Suriani in 1995." data-ms="Restoran Suriani diasaskan oleh Rodiah Ahmad, yang berpindah ke Kuala Lumpur pada tahun 1980 dari kampung halamannya, Kuala Kangsar, Perak. Pada tahun 1986, beliau memulakan perjalanan dengan sebuah gerai makanan yang sederhana, di mana masakan Melayu ala rumahnya cepat mendapat sambutan masyarakat setempat. Berbekalkan kejayaan itu, beliau menubuhkan Restoran Suriani pada tahun 1995.">Restoran Suriani diasaskan oleh Rodiah Ahmad, yang berpindah ke Kuala Lumpur pada tahun 1980 dari kampung halamannya, Kuala Kangsar, Perak. Pada tahun 1986, beliau memulakan perjalanan dengan sebuah gerai makanan yang sederhana, di mana masakan Melayu ala rumahnya cepat mendapat sambutan masyarakat setempat. Berbekalkan kejayaan itu, beliau menubuhkan Restoran Suriani pada tahun 1995.</p>
         <p data-en="For close to three decades since, the kitchen has served masakan panas, Hainanese chicken rice and western favourites, cooked fresh around the clock. It remains a Malay, Muslim-owned family kitchen — the same recipes, the same hours, the same corner of Pudu." data-ms="Hampir tiga dekad sejak itu, dapur kami menghidangkan masakan panas, nasi ayam Hainan dan hidangan barat, dimasak segar sepanjang masa. Ia kekal sebagai dapur keluarga Melayu milik Muslim — resipi yang sama, waktu yang sama, di sudut Pudu yang sama.">Hampir tiga dekad sejak itu, dapur kami menghidangkan masakan panas, nasi ayam Hainan dan hidangan barat, dimasak segar sepanjang masa. Ia kekal sebagai dapur keluarga Melayu milik Muslim — resipi yang sama, waktu yang sama, di sudut Pudu yang sama.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- The board: four dishes pinned as order chits on a maroon field.
+       Which four depends on the hour — script.js swaps the set at breakfast,
+       lunch, dinner and the late shift. The 24-hour kitchen, flexing. -->
+  <section id="sorotan" class="section section-board">
+    <div class="container">
+      <p class="section-eyebrow" data-en="From the kitchen, right now" data-ms="Dari dapur, sekarang">Dari dapur, sekarang</p>
+      <h2 id="board-title" data-en="From our menu board" data-ms="Dari papan menu kami">Dari papan menu kami</h2>
+      <p class="board-note" data-en="This board follows the clock — the kitchen runs 24 hours." data-ms="Papan ini ikut jam — dapur kami masak 24 jam.">Papan ini ikut jam — dapur kami masak 24 jam.</p>
+      <div class="board-grid" id="board-grid"></div>
+      <p class="board-cta">
+        <a class="btn btn-outline" href="#menu" data-en="See all 140 dishes" data-ms="Lihat semua 140 hidangan">Lihat semua 140 hidangan</a>
+      </p>
     </div>
   </section>
 
@@ -256,6 +272,12 @@
         <p class="section-eyebrow" data-en="Find us" data-ms="Cari kami">Cari kami</p>
         <h2 data-en="Location &amp; hours" data-ms="Lokasi &amp; waktu">Lokasi &amp; waktu</h2>
 
+        <p class="hours-giant">
+          <span data-en="24 hours." data-ms="24 jam.">24 jam.</span>
+          <span class="hours-alt" data-en="7 days." data-ms="7 hari.">7 hari.</span>
+        </p>
+        <p class="hours-sub" data-en="No opening time, no closing time. If you are hungry, we are open." data-ms="Tiada waktu buka, tiada waktu tutup. Kalau anda lapar, kami buka.">Tiada waktu buka, tiada waktu tutup. Kalau anda lapar, kami buka.</p>
+
         <address class="location-address">
           28, Lorong 1/77a,<br>
           Pudu, 55100 Kuala Lumpur,<br>
@@ -264,8 +286,6 @@
         <button type="button" class="link-button" id="copy-address" data-en="Copy address" data-ms="Salin alamat" data-copied-en="Copied" data-copied-ms="Disalin">Salin alamat</button>
 
         <dl class="location-facts">
-          <dt data-en="Hours" data-ms="Waktu">Waktu</dt>
-          <dd data-en="Open 24 hours, every day" data-ms="Buka 24 jam, setiap hari">Buka 24 jam, setiap hari</dd>
           <dt data-en="Phone" data-ms="Telefon">Telefon</dt>
           <dd><a href="tel:+60392261408">03-9226 1408</a></dd>
           <dt data-en="WhatsApp" data-ms="WhatsApp">WhatsApp</dt>
@@ -339,6 +359,7 @@
   <div class="modal-backdrop" data-close-modal></div>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-name">
     <button class="modal-close" type="button" data-close-modal aria-label="Close">&times;</button>
+    <p class="modal-code" id="modal-code" hidden></p>
     <div class="modal-media" id="modal-icon"></div>
     <p class="modal-illustration-tag" id="modal-illustration-tag" data-en="Illustration — not an actual photo" data-ms="Ilustrasi — bukan foto sebenar">Ilustrasi — bukan foto sebenar</p>
     <h3 id="modal-name"></h3>

@@ -150,7 +150,17 @@ reused to frame the hero photograph and the gallery lead image.
 - **Type** — Fraunces (display), Figtree (text), Amiri (the bismillah, subset
   to 16 glyphs). All self-hosted in `public/assets/fonts/`, all SIL Open Font
   Licence, licences included alongside. Self-hosting is also why the CSP needs
-  no third-party origin.
+  no third-party origin. Fraunces was re-cut on 15 Aug 2026 to restore its
+  WONK axis (deliberate letterform irregularity, used on display sizes) at
+  the same 65KB — the SOFT axis is pinned to 0 to pay for it. Headings and
+  columnar prices differ on purpose: Fraunces has no tabular figures, so
+  price columns are always Figtree.
+- **The board** (`#sorotan`) shows four dishes that rotate with the clock —
+  breakfast, lunch, dinner, late shift. The sets are `BOARD_SETS` in
+  `public/script.js`, referencing dishes by `code`. A code that stops
+  existing in `menu-data.js` is silently skipped, so menu edits can never
+  break the board — but if you rename a dish, update the board set too if
+  it featured there.
 - **Colour** — the original palette is unchanged. One addition: `--gold-ink`
   (`#7d5a06`) is the only gold permitted as text on cream. The display gold
   `#e8b923` sits at roughly 1.6:1 against the cream background, well below the
