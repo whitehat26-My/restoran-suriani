@@ -309,6 +309,21 @@ a { color: inherit; }
 .site-header.is-stuck .brand-bismillah,
 .site-header.is-stuck .brand-tagline { display: none; }
 
+/* At the top of the page the monument sign in the hero IS the brand — the
+   header showing the same lockup twice on one screen reads as a stutter.
+   The compact lockup fades in once the header sticks. Gated on html.draw
+   (set only when JS runs) so a scriptless page always shows the brand. */
+html.draw .site-header .brand {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+html.draw .site-header.is-stuck .brand {
+  visibility: visible;
+  opacity: 1;
+}
+
 .site-nav {
   display: flex;
   align-items: center;
@@ -394,18 +409,75 @@ a { color: inherit; }
 .hero {
   background:
     var(--grain-gold),
-    radial-gradient(120% 90% at 15% 0%, rgba(154, 26, 43, 0.55) 0%, transparent 60%),
+    radial-gradient(130% 70% at 50% 0%, rgba(154, 26, 43, 0.5) 0%, transparent 62%),
     linear-gradient(165deg, var(--maroon-dark) 0%, #3a0810 100%);
   color: var(--cream);
-  padding-block: clamp(3rem, 7vw, 5.5rem);
+  padding-block: clamp(2.5rem, 5vw, 4rem) clamp(3rem, 7vw, 5.5rem);
   overflow: hidden;
 }
 
+/* --- The signboard at monument scale ------------------------------------
+   The same stack as the physical sign: bismillah, RESTORAN, the rule, the
+   name. The name fills the container the way SURIANI fills the board. --- */
+
+.hero-sign {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  position: relative;
+  z-index: 0;
+}
+
+.hero-bismillah {
+  font-family: var(--font-arabic);
+  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  line-height: 1.9;
+  color: var(--gold-light);
+  opacity: 0.9;
+}
+
+.hero-restoran {
+  font-size: clamp(0.72rem, 1.4vw, 0.95rem);
+  font-weight: 600;
+  letter-spacing: 0.55em;
+  text-indent: 0.55em;
+  text-transform: uppercase;
+  color: var(--gold-light);
+  margin-top: 0.9rem;
+}
+
+.hero-rule { margin-top: 0.6rem; }
+
+/* Painted, not typeset: the hard offset shadow is the signwriter's drop
+   shade, the way the letters on the real board carry one. */
+.hero-word {
+  font-size: clamp(4.1rem, 14.5vw, 11.6rem);
+  font-weight: 620;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  color: var(--gold);
+  text-shadow: 0.045em 0.055em 0 rgba(20, 3, 6, 0.55);
+  margin: 0;
+}
+
+.hero-strap {
+  font-size: clamp(0.62rem, 1.3vw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  color: rgba(244, 216, 120, 0.72);
+  margin: 1rem 0 0;
+}
+
 .hero-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
   gap: clamp(2rem, 5vw, 4rem);
   align-items: center;
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .hero-eyebrow {
@@ -417,10 +489,17 @@ a { color: inherit; }
   margin-bottom: 1rem;
 }
 
-.hero h1 {
-  color: var(--cream);
+.hero-lead {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "WONK" 1;
+  font-size: var(--step-3);
   font-weight: 500;
-  max-width: 16ch;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+  color: var(--cream);
+  max-width: 18ch;
   margin-bottom: 1.1rem;
 }
 
@@ -1624,12 +1703,13 @@ html.draw .section h2.drawn::after { clip-path: inset(0 0 0 0); }
 /* --- Responsive --------------------------------------------------------- */
 
 @media (min-width: 961px) {
-  /* The board bleeds toward the viewport edge and rises into the header's
-     space — the photo behaves like an object, not a slot. .hero has
-     overflow:hidden, so the bleed clips cleanly. */
+  /* The photo behaves like an object, not a slot: it bleeds toward the
+     viewport edge and rises over the giant sign's lower edge, layered in
+     front (.hero-inner carries z-index: 1). .hero has overflow:hidden, so
+     the bleed clips cleanly. */
   .hero-figure {
     margin-right: calc(var(--gutter) * -1.25);
-    margin-top: -0.75rem;
+    margin-top: -4.5rem;
   }
 }
 
