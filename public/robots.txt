@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # AI crawlers are deliberately NOT blocked. For a restaurant whose customers
-# find it by searching "Malay food open 24 hours Pudu", being absent from AI
+# find it by searching "nasi ayam hainan Pudu" or "restoran melayu KL", being absent from AI
 # answers is a lost customer, not a security win — and nothing here is
 # proprietary; the menu is on a board in the shop.
 

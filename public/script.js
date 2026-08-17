@@ -32,6 +32,26 @@
   var STORAGE_KEY = "suriani-lang";
   var currentLang = "ms";
 
+  /* Trading hours, in minutes past midnight. 6:30am to 10:00pm, every day.
+     Everything on the page that claims the restaurant is open reads from
+     here — the hero indicator, the board and the Location panel — so the
+     hours are stated in exactly one place and cannot drift apart.
+     Changing these two numbers changes the whole site, EXCEPT the
+     openingHoursSpecification in the JSON-LD block in index.html, which
+     Google reads and must be edited to match by hand. */
+  var OPENS_AT = 6 * 60 + 30;   /* 06:30 */
+  var CLOSES_AT = 22 * 60;      /* 22:00 */
+
+  function minutesNow() {
+    var d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function isOpenNow() {
+    var m = minutesNow();
+    return m >= OPENS_AT && m < CLOSES_AT;
+  }
+
   /* ------------------------------------------------------------------ */
   /* Helpers                                                             */
   /* ------------------------------------------------------------------ */
@@ -94,6 +114,7 @@
     renderMenu();
     renderDelivery();
     renderBoard();
+    renderOpenState();
   }
 
   on(langToggle, "click", function () {
@@ -472,18 +493,23 @@
   /* Location: copy address, delivery links, click-to-load map           */
   /* ------------------------------------------------------------------ */
 
-  var copyBtn = $("copy-address");
+  /* One handler per branch. Each button carries its own address in
+     data-copy, so adding a third branch needs no JavaScript change. */
+  var copyButtons = document.querySelectorAll(".copy-address");
 
-  on(copyBtn, "click", function () {
-    var text = "Restoran Suriani, 28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur";
-    var done = function () {
-      var original = copyBtn.getAttribute("data-" + currentLang);
-      copyBtn.textContent = copyBtn.getAttribute("data-copied-" + currentLang) || "Copied";
-      setTimeout(function () { copyBtn.textContent = original; }, 2000);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done, function () {});
-    }
+  Array.prototype.forEach.call(copyButtons, function (btn) {
+    on(btn, "click", function () {
+      var text = btn.getAttribute("data-copy") || "";
+      if (!text) return;
+      var done = function () {
+        var original = btn.getAttribute("data-" + currentLang);
+        btn.textContent = btn.getAttribute("data-copied-" + currentLang) || "Copied";
+        setTimeout(function () { btn.textContent = original; }, 2000);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      }
+    });
   });
 
   function renderDelivery() {
@@ -507,19 +533,23 @@
   }
 
   /* The Google Maps embed is the page's only third-party request. Loading
-     it only on click keeps the default page load entirely first-party. */
-  var mapFacade = $("map-facade");
+     it only on click keeps the default page load entirely first-party —
+     and with a branch each, a visitor loads only the map they asked for.
+     Each facade carries its own address in data-map-query. */
+  var mapFacades = document.querySelectorAll(".map-facade");
 
-  on(mapFacade, "click", function () {
-    var frame = document.createElement("iframe");
-    frame.src = "https://www.google.com/maps?q=" +
-      encodeURIComponent("28, Lorong 1/77a, Pudu, 55100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur") +
-      "&output=embed";
-    frame.title = "Restoran Suriani location";
-    frame.loading = "lazy";
-    frame.referrerPolicy = "no-referrer-when-downgrade";
-    frame.setAttribute("allowfullscreen", "");
-    mapFacade.parentNode.replaceChild(frame, mapFacade);
+  Array.prototype.forEach.call(mapFacades, function (facade) {
+    on(facade, "click", function () {
+      var query = facade.getAttribute("data-map-query");
+      if (!query) return;
+      var frame = document.createElement("iframe");
+      frame.src = "https://www.google.com/maps?q=" + encodeURIComponent(query) + "&output=embed";
+      frame.title = facade.getAttribute("data-map-title") || "Restoran Suriani";
+      frame.loading = "lazy";
+      frame.referrerPolicy = "no-referrer-when-downgrade";
+      frame.setAttribute("allowfullscreen", "");
+      facade.parentNode.replaceChild(frame, facade);
+    });
   });
 
   /* ------------------------------------------------------------------ */
@@ -531,38 +561,42 @@
      quietly demonstrates it instead of claiming it. Codes reference real
      entries in menu-data.js; a code that stops existing is skipped, so a
      menu edit can never break the board. */
+  /* Nasi ayam Hainan is the dish on the signboard, so NA01 is pinned to
+     every set and always carries the "paling laku" stamp. The other three
+     rotate with the hour. */
+  var BEST_SELLER = "NA01";
+
   var BOARD_SETS = {
     sarapan: {
       ms: "Untuk sarapan pagi ini",
       en: "For breakfast this morning",
-      codes: ["NL01", "B02", "B01", "B03"],
-      star: "NL01"
+      codes: [BEST_SELLER, "NL01", "B02", "B01"]
     },
     tengahari: {
       ms: "Untuk makan tengah hari",
       en: "For lunch today",
-      codes: ["NA01", "SNP01", "ST01", "MD03"],
-      star: "NA01"
+      codes: [BEST_SELLER, "SNP01", "ST01", "MD03"]
     },
     malam: {
       ms: "Untuk makan malam",
       en: "For dinner tonight",
-      codes: ["WF01", "WF03", "P01", "NA02"],
-      star: "WF01"
+      codes: [BEST_SELLER, "WF01", "WF03", "P01"]
     },
-    lewat: {
-      ms: "Pukul 3 pagi? Kami buka.",
-      en: "3 a.m.? We’re open.",
-      codes: ["MD19", "MD02", "SD03", "B02"],
-      star: "MD19"
+    /* Outside trading hours the board must not imply the kitchen is
+       cooking. It says when we open and shows what will be waiting. */
+    tutup: {
+      ms: "Kami buka jam 6:30 pagi",
+      en: "We open at 6:30 am",
+      codes: [BEST_SELLER, "NL01", "B02", "B03"]
     }
   };
 
-  function boardWindow(hour) {
-    if (hour >= 6 && hour < 11) return "sarapan";
-    if (hour >= 11 && hour < 17) return "tengahari";
-    if (hour >= 17) return "malam";
-    return "lewat";
+  function boardWindow() {
+    var m = minutesNow();
+    if (m < OPENS_AT || m >= CLOSES_AT) return "tutup";
+    if (m < 11 * 60) return "sarapan";
+    if (m < 17 * 60) return "tengahari";
+    return "malam";
   }
 
   function findByCode(code) {
@@ -578,7 +612,7 @@
     var title = $("board-title");
     if (!grid || !hasMenuData) return;
 
-    var set = BOARD_SETS[boardWindow(new Date().getHours())];
+    var set = BOARD_SETS[boardWindow()];
     if (title) title.textContent = set[currentLang];
 
     clear(grid);
@@ -591,7 +625,7 @@
       card.type = "button";
       card.className = "board-card";
 
-      if (code === set.star) {
+      if (code === BEST_SELLER) {
         var star = document.createElement("span");
         star.className = "stamp";
         star.textContent = currentLang === "ms" ? "Paling laku" : "Best seller";
@@ -632,6 +666,38 @@
       grid.appendChild(card);
     });
   }
+
+  /* ------------------------------------------------------------------ */
+  /* Open / closed, decided by the clock                                 */
+  /* ------------------------------------------------------------------ */
+
+  /* The pulsing indicator used to read "we never close", which was true
+     when the kitchen ran 24 hours. With fixed hours a hardcoded "open now"
+     becomes a lie every night, so it is computed. The markup ships in the
+     closed state and JS turns it on, because a visitor with no JS is
+     better served by "6:30 pagi - 10 malam" than by a false "open now". */
+  var openStatus = $("open-status");
+  var openDot = $("open-dot");
+
+  function renderOpenState() {
+    if (!openStatus) return;
+
+    var open = isOpenNow();
+    var key = open ? "open" : "closed";
+
+    openStatus.textContent = openStatus.getAttribute("data-" + key + "-" + currentLang) || "";
+    if (openDot) openDot.classList.toggle("is-closed", !open);
+
+    var wrap = openStatus.parentNode;
+    if (wrap && wrap.classList) wrap.classList.toggle("is-closed", !open);
+  }
+
+  /* Re-check every minute so a page left open across 10pm updates itself
+     rather than sitting on a stale claim. */
+  setInterval(function () {
+    renderOpenState();
+    renderBoard();
+  }, 60000);
 
   /* ------------------------------------------------------------------ */
   /* Brush rules draw in as their headings enter the viewport            */

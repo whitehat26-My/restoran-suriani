@@ -15,7 +15,7 @@
 # chain. It is set once at the zone instead (scripts/cloudflare-setup.sh).
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-5ns7WtBMsPkNhNyiMe/UK8FijMzSr8BVfcH6Nnfve4Q='; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-coKYngo/wc90klc4KeDfMmYqZNIx8aBpj4hBw6ErM0E='; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
