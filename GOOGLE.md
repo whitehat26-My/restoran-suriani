@@ -8,7 +8,7 @@ Two separate things, often confused:
 | **Search Console** | Tells Google the *website* exists and reports how it is indexed | People who search for the site by name |
 
 For a restaurant, **the Business Profile matters far more than the website.**
-Someone searching "nasi ayam hainan Pudu" or "restoran buka 24 jam near me" is
+Someone searching "nasi ayam hainan Pudu" or "restoran melayu near me" is
 served Maps results, not web pages. The website supports the listing; it does
 not replace it.
 
@@ -64,9 +64,32 @@ Inconsistencies weaken local ranking, so copy these verbatim:
 | Website | `https://suriani.rest` |
 | Primary category | **Malaysian restaurant** |
 | Secondary categories | Halal restaurant *(see the caveat below)*, Hainanese restaurant, Restaurant |
-| Hours | **Open 24 hours**, all seven days |
+| Hours | **6:30 am – 10:00 pm**, all seven days |
 | Opened | 1995 |
 | Attributes | Dine-in, Takeaway, Delivery (if foodpanda/GrabFood are live) |
+
+### The second branch needs its own listing
+
+Google Business Profile is **one listing per physical location**. The Jalan
+Rahmat branch will not appear on Maps just because it is on the website — it
+needs its own profile, created and verified separately:
+
+| Field | Value |
+|---|---|
+| Name | `Restoran Suriani` — the same name, so both read as one business |
+| Address | `18, Jalan Rahmat, Off Jalan Sultan Azlan Shah, 50350 Kuala Lumpur` |
+| Website | `https://suriani.rest` |
+| Hours | **6:30 am – 10:00 pm**, all seven days |
+| Categories | Same as Pudu |
+
+Two notes that matter:
+
+- **Search Maps for the address before creating it.** If a listing already
+  exists, claim it. A duplicate listing splits your reviews between two pins
+  and is slow to merge afterwards.
+- Jalan Sultan Azlan Shah was **formerly Jalan Ipoh**, and many customers,
+  maps and delivery drivers still use the old name. Put the old name in the
+  profile description so searches for "Jalan Ipoh" still find you.
 
 ⚠️ **On the "Halal restaurant" category:** only add it if the restaurant holds
 a current JAKIM certificate. You told me it does not. Google's category is not

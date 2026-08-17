@@ -349,8 +349,8 @@ real customers. Roll back with `{"fight_mode": false}` if either test fails.
   `static.cloudflareinsights.com`, permanently loosening the `default-src
   'none'` CSP. Zone Analytics is already free, server-side and needs no
   JavaScript — enough for a restaurant.
-- **Blocking AI crawlers.** For a business found by searching "Malay food open
-  24 hours Pudu", absence from AI answers is a lost customer, not a security
+- **Blocking AI crawlers.** For a business found by searching "nasi ayam
+  hainan Pudu", absence from AI answers is a lost customer, not a security
   win. Nothing here is proprietary — the menu is on a board in the shop. This
   is a business decision, so revisit it if the owner disagrees.
 - **Cloudflare Email Routing.** It would install MX records on the apex,

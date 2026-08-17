@@ -1166,13 +1166,6 @@ html.draw .site-header.is-stuck .brand {
 
 /* --- Location ----------------------------------------------------------- */
 
-.location-grid {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: clamp(2rem, 5vw, 4rem);
-  align-items: start;
-}
-
 .location-address {
   font-style: normal;
   font-size: var(--step-1);
@@ -1286,7 +1279,8 @@ html.draw .site-header.is-stuck .brand {
 
 .footer-links a, .footer-contact a { color: inherit; text-decoration: none; }
 .footer-links a:hover, .footer-contact a:hover { color: var(--gold-light); text-decoration: underline; text-underline-offset: 3px; }
-.footer-contact address { font-style: normal; line-height: 1.6; }
+.footer-contact address { font-style: normal; line-height: 1.6; margin-bottom: 0.9rem; }
+.footer-contact address strong { color: var(--gold-light); font-weight: 600; }
 .footer-contact p { margin: 0; }
 
 .footer-bottom {
@@ -1694,8 +1688,59 @@ html.draw .section h2.drawn::after { clip-path: inset(0 0 0 0); }
 .hours-sub {
   font-size: 0.95rem;
   color: var(--ink-muted);
-  margin-bottom: 0.75rem;
+  margin-bottom: 2.5rem;
 }
+
+/* --- Two branches -------------------------------------------------------- */
+
+.branches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: clamp(2rem, 4vw, 3.5rem);
+  align-items: start;
+}
+
+.branch { display: grid; align-content: start; }
+
+.branch-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-ink);
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid var(--rule);
+}
+
+.branch-note {
+  font-size: 0.84rem;
+  color: var(--ink-faint);
+  margin: 0 0 0.5rem;
+  max-width: 34ch;
+}
+
+/* A button is a grid item here and would otherwise stretch the full column,
+   centring its label away from the address it belongs to. */
+.branch .copy-address { justify-self: start; text-align: left; }
+
+.branch .location-facts { margin-block: 1.25rem; }
+.branch .map-frame { min-height: 260px; margin-bottom: 1rem; }
+.branch .map-frame iframe { min-height: 260px; }
+
+/* --- Open / closed indicator --------------------------------------------
+   Pandan means open. When the kitchen is closed the dot must not merely
+   change colour but stop pulsing, because a live pulse reads as "we are
+   here right now" regardless of hue.
+   ------------------------------------------------------------------------ */
+
+.open-dot.is-closed {
+  background: rgba(253, 246, 227, 0.4);
+  box-shadow: none;
+  animation: none;
+}
+
+.hero-open.is-closed { color: rgba(253, 246, 227, 0.7); }
 
 /* Anchors must clear the sticky header. */
 [id] { scroll-margin-top: calc(var(--header-h) + 1rem); }
@@ -1735,8 +1780,7 @@ html.draw .section h2.drawn::after { clip-path: inset(0 0 0 0); }
   .hero-inner { grid-template-columns: 1fr; }
   .hero-figure { order: -1; max-width: 320px; margin-inline: auto; }
   .about-grid,
-  .catering-grid,
-  .location-grid { grid-template-columns: 1fr; }
+  .catering-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-brand { grid-column: 1 / -1; }
 }
