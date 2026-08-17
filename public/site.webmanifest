@@ -1,0 +1,16 @@
+{
+  "name": "Restoran Suriani",
+  "short_name": "Suriani",
+  "description": "Masakan Melayu ala rumah di Pudu dan Jalan Rahmat, Kuala Lumpur.",
+  "lang": "ms",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#fdf6e3",
+  "theme_color": "#4a0c14",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -15,7 +15,7 @@
 # chain. It is set once at the zone instead (scripts/cloudflare-setup.sh).
 
 /*
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-coKYngo/wc90klc4KeDfMmYqZNIx8aBpj4hBw6ErM0E='; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'sha256-coKYngo/wc90klc4KeDfMmYqZNIx8aBpj4hBw6ErM0E='; style-src 'self'; img-src 'self' data:; font-src 'self'; manifest-src 'self'; frame-src https://www.google.com https://maps.google.com; form-action 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
@@ -56,6 +56,35 @@
 /*.css
   ! Cache-Control
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+# Icons and the manifest change only when the brand does. A week is long
+# enough to help repeat visits and short enough that a logo change reaches
+# everyone quickly. These are listed one per block because a _headers rule
+# takes a single path, and matched explicitly rather than by a /*.png glob,
+# which would also catch the photos and override their 30-day policy.
+/favicon.ico
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
+
+/favicon.svg
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
+
+/apple-touch-icon.png
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
+
+/icon-192.png
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
+
+/icon-512.png
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
+
+/site.webmanifest
+  ! Cache-Control
+  Cache-Control: public, max-age=604800
 
 /robots.txt
   ! Cache-Control
