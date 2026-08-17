@@ -84,8 +84,15 @@
   var langToggle = $("lang-toggle");
 
   function storedLanguage() {
-    try { return localStorage.getItem(STORAGE_KEY) || "ms"; }
-    catch (e) { return "ms"; }
+    /* Whitelist the value rather than trusting it. localStorage is only
+       ever written by this script, so a poisoned value implies the browser
+       is already compromised — but validating here means a garbage value
+       can never flow into getAttribute("data-" + lang) or the lang
+       attribute even so. Defence in depth, not a live vector. */
+    try {
+      var v = localStorage.getItem(STORAGE_KEY);
+      return (v === "ms" || v === "en") ? v : "ms";
+    } catch (e) { return "ms"; }
   }
 
   function applyLanguage(lang) {
@@ -546,7 +553,11 @@
       frame.src = "https://www.google.com/maps?q=" + encodeURIComponent(query) + "&output=embed";
       frame.title = facade.getAttribute("data-map-title") || "Restoran Suriani";
       frame.loading = "lazy";
-      frame.referrerPolicy = "no-referrer-when-downgrade";
+      /* Match the page's own Referrer-Policy rather than weakening it.
+         "no-referrer-when-downgrade" sends the full URL to Google on an
+         https->https load; the page header is stricter, so align to it and
+         hand Google only the origin. */
+      frame.referrerPolicy = "strict-origin-when-cross-origin";
       frame.setAttribute("allowfullscreen", "");
       facade.parentNode.replaceChild(frame, facade);
     });
