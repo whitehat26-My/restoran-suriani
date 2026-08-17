@@ -27,8 +27,14 @@
 <meta property="og:image:alt" content="Restoran Suriani — masakan Melayu, nasi ayam Hainan &amp; makanan barat. Pudu &amp; Jalan Rahmat, Kuala Lumpur.">
 <meta name="twitter:card" content="summary_large_image">
 
+<!-- favicon.ico first and deliberately: bookmark bars, browser history, link
+     previews, Windows shortcuts and older browsers request /favicon.ico and
+     ignore SVG. Without it they fall back to a generic globe. Browsers that
+     understand SVG take the second line instead and scale it perfectly. -->
+<link rel="icon" href="/favicon.ico" sizes="32x32">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 
 <link rel="preload" href="/assets/fonts/figtree-latin-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/assets/fonts/fraunces-latin-var-2.woff2" as="font" type="font/woff2" crossorigin>
