@@ -93,3 +93,25 @@
 /sitemap.xml
   ! Cache-Control
   Cache-Control: public, max-age=3600
+
+# --- Keep two non-pages out of the index ---------------------------------
+# html_handling serves foo.html at /foo, so /404 and the Search Console
+# verification file both answer 200 and are crawlable. Left alone, Google
+# indexes a "Halaman tidak dijumpai" page as a real search result, and a
+# thin token page alongside it.
+#
+# X-Robots-Tag rather than a robots.txt Disallow: disallowing blocks the
+# crawl, so Google would never read the noindex, and a blocked URL can
+# still be indexed from a link. A crawlable noindex is the only reliable
+# way to remove a page.
+/404
+  X-Robots-Tag: noindex
+
+/404.html
+  X-Robots-Tag: noindex
+
+/google7383adf7d4950d30
+  X-Robots-Tag: noindex
+
+/google7383adf7d4950d30.html
+  X-Robots-Tag: noindex
