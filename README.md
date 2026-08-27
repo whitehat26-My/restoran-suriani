@@ -24,7 +24,6 @@ public/                  ← everything here is served publicly
   styles.css             design system + layout
   script.js              language switch, menu, modal, form, map facade
   menu-data.js           ← every dish, price and description. Edit this.
-  menu-icons.js          drawn dish illustrations
   _headers               security headers + caching (parsed by Cloudflare, not served)
   robots.txt  sitemap.xml  favicon.svg  apple-touch-icon.png
   assets/                photos and self-hosted fonts
@@ -57,8 +56,9 @@ Drop the file in `public/assets/food/`, then add a `photo` field to that dish:
 { code: "SNP01", ..., photo: "/assets/food/ayam-masak-merah.jpg" },
 ```
 
-The site swaps the drawn illustration for the photo and removes the
-"Illustration only" label for that dish automatically.
+The photo then appears in that dish's detail sheet. Dishes without one show no
+image at all — there is no drawn stand-in, so nothing looks broken or unfinished
+while the menu is only partly photographed.
 
 **When replacing an existing photo, give it a new filename.** Photos are
 cached for 30 days, so overwriting `interior.jpg` in place leaves returning

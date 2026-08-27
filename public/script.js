@@ -1,6 +1,6 @@
 /* Restoran Suriani — site behaviour.
    No build step: this is plain ES5-compatible script loaded after
-   menu-icons.js and menu-data.js, both of which declare globals. */
+   menu-data.js, which declares the menu globals. */
 
 (function () {
   "use strict";
@@ -59,18 +59,6 @@
   function $(id) { return document.getElementById(id); }
 
   function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
-
-  /* Parse the icon strings from menu-icons.js into real nodes rather than
-     assigning innerHTML. The strings are ours, but this keeps the codebase
-     free of HTML-injection sinks entirely, which is what lets the
-     Content-Security-Policy in _headers stay strict. */
-  function svgFromString(str) {
-    if (!str) return null;
-    var doc = new DOMParser().parseFromString(str, "image/svg+xml");
-    if (doc.getElementsByTagName("parsererror").length) return null;
-    var node = doc.documentElement;
-    return node ? document.importNode(node, true) : null;
-  }
 
   function clear(el) {
     while (el && el.firstChild) el.removeChild(el.firstChild);
@@ -185,40 +173,39 @@
     return lang === "ms" ? "Sila tanya" : "Ask staff";
   }
 
-  function pickMenuIcon(item) {
-    var name = ((item.en || "") + " " + (item.ms || "")).toLowerCase();
-    if (item.category === "nasi-lemak") return "nasiLemak";
-    if (item.category === "hainan") return /taugeh|sprout/.test(name) ? "vegetable" : "chickenRice";
-    if (item.category === "western") return "steak";
-    if (item.category === "pasta") return "pasta";
-    if (/penyet/.test(name)) return "penyet";
-    if (/bakso|meatball|bebola/.test(name)) return "meatball";
-    if (/telur|egg/.test(name)) return "egg";
-    if (/\bsup\b|soup|tomyam|tom yam/.test(name)) return "soup";
-    if (/kangkung|kailan|sayur|vegetable/.test(name)) return "vegetable";
-    if (/roti|toast|bread/.test(name)) return "toast";
-    if (/lontong|impit/.test(name)) return "riceGravy";
-    if (item.category === "fried-rice") return "friedRice";
-    if (item.category === "noodles") return "noodle";
-    if (item.category === "side-dish") return "fries";
-    if (item.category === "breakfast") return "friedRice";
-    return "riceGravy";
-  }
+  /* Photographs only. There is no drawn stand-in: an icon keyed to category
+     repeats identically down every row and carries no information about the
+     dish, and the sheet had to caption it "not a real photo" — a picture that
+     needs that disclaimer is not doing a job. Dishes without a photograph show
+     no image at all, which is what a printed menu does too.
 
+     Returns whether anything was rendered, so the caller can collapse the
+     container rather than leave a gap. */
   function renderMedia(container, item) {
     clear(container);
-    if (item.photo) {
-      var img = document.createElement("img");
-      img.src = item.photo;
-      img.alt = item[currentLang] || "";
-      img.loading = "lazy";
-      container.appendChild(img);
-      return;
-    }
-    var type = pickMenuIcon(item);
-    var markup = (typeof MENU_ICONS !== "undefined" && MENU_ICONS[type]) ? MENU_ICONS[type] : "";
-    var svg = svgFromString(markup);
-    if (svg) container.appendChild(svg);
+    if (!item.photo) return false;
+
+    var img = document.createElement("img");
+    img.src = item.photo;
+    img.alt = item[currentLang] || "";
+    img.loading = "lazy";
+    container.appendChild(img);
+    return true;
+  }
+
+  /* The rail is pinned under the header, so it is on screen the whole time you
+     are reading a category — which is only useful if it shows where you are.
+     Twelve categories do not fit at any phone width, so the active one is
+     centred in the rail after every render. Scrolls the rail alone, never the
+     page: scrollIntoView would drag the document as well. */
+  function centreActiveTab() {
+    if (!tabsEl) return;
+    var active = tabsEl.querySelector(".menu-tab.active");
+    if (!active || tabsEl.scrollWidth <= tabsEl.clientWidth) return;
+
+    var rail = tabsEl.getBoundingClientRect();
+    var tab = active.getBoundingClientRect();
+    tabsEl.scrollLeft += (tab.left - rail.left) - (rail.width - tab.width) / 2;
   }
 
   function renderTabs() {
@@ -242,6 +229,8 @@
       });
       tabsEl.appendChild(btn);
     });
+
+    centreActiveTab();
   }
 
   function matchingItems() {
@@ -264,18 +253,15 @@
     row.type = "button";
     row.className = "dish";
 
-    var thumb = document.createElement("span");
-    thumb.className = "dish-thumb";
-    renderMedia(thumb, item);
-
-    var head = document.createElement("span");
-    head.className = "dish-head";
-
-    /* The kitchen's own dish number, shown the way the printed menu shows
-       it. It is also how staff recognise an order, so it earns its place. */
+    /* The kitchen's own dish number, hanging in the left gutter the way a
+       printed menu sets it. It is also how staff recognise an order, so it
+       earns its place. */
     var code = document.createElement("span");
     code.className = "dish-code";
     code.textContent = item.code || "";
+
+    var head = document.createElement("span");
+    head.className = "dish-head";
 
     var name = document.createElement("span");
     name.className = "dish-name";
@@ -289,7 +275,6 @@
     price.className = "dish-price" + (typeof item.price === "number" ? "" : " price-unknown");
     price.textContent = formatPrice(item, currentLang);
 
-    head.appendChild(code);
     head.appendChild(name);
     head.appendChild(leader);
     head.appendChild(price);
@@ -298,7 +283,7 @@
     desc.className = "dish-desc";
     desc.textContent = item["desc" + (currentLang === "ms" ? "Ms" : "En")] || "";
 
-    row.appendChild(thumb);
+    row.appendChild(code);
     row.appendChild(head);
     row.appendChild(desc);
 
@@ -365,10 +350,9 @@
       codeEl.hidden = !item.code;
     }
 
-    renderMedia($("modal-icon"), item);
-
-    var tag = $("modal-illustration-tag");
-    if (tag) tag.hidden = !!item.photo;
+    /* Collapses entirely unless the dish has a real photograph. */
+    var iconEl = $("modal-icon");
+    if (iconEl) iconEl.hidden = !renderMedia(iconEl, item);
 
     $("modal-name").textContent = item[currentLang];
     $("modal-desc").textContent = item["desc" + (currentLang === "ms" ? "Ms" : "En")] || "";
