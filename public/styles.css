@@ -723,6 +723,25 @@ html.draw .site-header.is-stuck .brand {
 
 .about-lead h2 { margin-bottom: 0; }
 
+/* The one sentence on this page that no other restaurant could write. It
+   earns the display face and a gold rule, set apart from the body prose it
+   would otherwise disappear into. Not a blockquote — nobody is being quoted;
+   it is the kitchen stating what it is known for. */
+.about-known-for {
+  margin-top: 1.6rem;
+  padding-top: 1.3rem;
+  border-top: 2px solid var(--rule-strong);
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "WONK" 1;
+  font-size: var(--step-1);
+  font-weight: 600;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.about-body .about-known-for { color: var(--maroon-dark); }
+
 .about-body p { color: var(--ink-muted); }
 .about-body p:first-child::first-letter {
   float: left;
