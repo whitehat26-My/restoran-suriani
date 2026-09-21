@@ -10,7 +10,13 @@ const PRICE_NOTES = {
   pictureOnly: { ms: "Turut terdapat di papan menu bergambar — sila tanya kakitangan untuk harga", en: "Also shown on our photo menu board — ask staff for current pricing" }
 };
 
+/* Order matters: the first category is what the menu opens on, and the rail
+   reads as a statement of what this kitchen is known for. Nasi ayam Hainan
+   leads because it is the dish people come here asking for by name — and
+   because the restaurant's own signboard has always put it first, ahead of
+   "Masakan Melayu" and "Western Food". The site used to bury it eighth. */
 const MENU_CATEGORIES = [
+  { id: "hainan", ms: "Nasi Ayam Hainan", en: "Hainanese Chicken Rice", icon: "🍗" },
   { id: "rice-sets", ms: "Set Nasi Putih", en: "Rice Sets", icon: "🍛" },
   { id: "indo", ms: "Menu Indonesia", en: "Indonesian Favourites", icon: "🍲" },
   { id: "noodles", ms: "Mee & Bihun", en: "Noodles", icon: "🍜" },
@@ -18,7 +24,6 @@ const MENU_CATEGORIES = [
   { id: "sides", ms: "Set Tambahan", en: "Side Add-ons", icon: "🥗" },
   { id: "breakfast", ms: "Sarapan", en: "Breakfast", icon: "☕" },
   { id: "nasi-lemak", ms: "Nasi Lemak", en: "Nasi Lemak", icon: "🌶️" },
-  { id: "hainan", ms: "Nasi Ayam Hainan", en: "Hainanese Chicken Rice", icon: "🍗" },
   { id: "western", ms: "Makanan Barat", en: "Western Food", icon: "🍽️", note: { ms: "Tambahan: +RM1 dengan keju, +RM2 dengan nasi goreng", en: "Add-ons: +RM1 with cheese, +RM2 with fried rice" } },
   { id: "pasta", ms: "Pasta", en: "Pasta", icon: "🍝" },
   { id: "side-dish", ms: "Side Dish", en: "Side Dish", icon: "🍟" },
