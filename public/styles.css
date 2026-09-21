@@ -97,6 +97,11 @@
      borders as the section divider. */
   --brush-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='8' viewBox='0 0 120 8'%3E%3Cpath d='M2 5 Q 18 2.5 33 4.5 T 62 4.5 T 90 4.5 T 118 4' fill='none' stroke='%23e8b923' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
 
+  /* The same stroke turned on its side, for the chronicle's spine. It tiles
+     vertically, so the first and last points sit at the tile edge to keep
+     the seam invisible. */
+  --brush-gold-v: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='120' viewBox='0 0 8 120'%3E%3Cpath d='M4 0 Q 6.1 18 4.3 34 T 4.3 66 T 4.3 98 T 4 120' fill='none' stroke='%23e8b923' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+
   --font-display: "Fraunces", Georgia, "Times New Roman", serif;
   --font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-arabic: "Amiri", "Scheherazade New", serif;
@@ -753,6 +758,99 @@ html.draw .site-header.is-stuck .brand {
   color: var(--maroon);
   padding-right: 0.09em;
   padding-top: 0.06em;
+}
+
+/* --- The chronicle -------------------------------------------------------
+   Set as a ledger, not a timeline. The generic pattern — a rule with dots
+   and a card per event — is the single loudest "template" tell there is, so
+   there are no dots and no cards here. Instead the years are the structure:
+   right-aligned in the display face against a hand-drawn spine, the way
+   dates sit in a record book. The last row breaks the rhythm on purpose,
+   reading "Kini" rather than a year, so the page cannot date itself and the
+   sequence lands on the present.
+   ------------------------------------------------------------------------ */
+
+.chronicle {
+  /* Declared once and reused by the spine's offset, so the rule and the
+     columns cannot drift apart.
+     Sized for the widest label, which is not a year: "Today" needs ~2.9x the
+     year font-size, where a four-digit year needs ~2.7x. The column therefore
+     tracks the type's own clamp (1.55/4.4vw/2.35rem) at a slightly wider
+     ratio, so the word never overruns the column at any viewport width. */
+  --year-col: clamp(4.6rem, 13vw, 7rem);
+  --chron-gap: clamp(1.1rem, 3vw, 2rem);
+
+  position: relative;
+  list-style: none;
+  margin: clamp(2.75rem, 6vw, 4.25rem) 0 0;
+  padding: 0;
+  display: grid;
+  gap: clamp(1.9rem, 3.5vw, 2.6rem);
+}
+
+/* The spine: the section-heading brush stroke, turned vertical and tiled. */
+.chronicle::before {
+  content: "";
+  position: absolute;
+  top: 0.3rem;
+  bottom: 0.3rem;
+  left: calc(var(--year-col) + var(--chron-gap) / 2);
+  width: 8px;
+  margin-left: -4px;
+  background: var(--brush-gold-v) repeat-y 0 0 / 8px 120px;
+}
+
+.chronicle-entry {
+  display: grid;
+  grid-template-columns: var(--year-col) 1fr;
+  gap: var(--chron-gap);
+  align-items: start;
+}
+
+.chronicle-year {
+  margin: 0;
+  text-align: right;
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: "WONK" 1;
+  font-size: clamp(1.55rem, 4.4vw, 2.35rem);
+  font-weight: 620;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--gold-ink);
+}
+
+/* The sequence arrives at today, so the last year carries the brand's
+   primary colour rather than the muted gold of the past. */
+.chronicle-entry.is-now .chronicle-year { color: var(--maroon); }
+
+.chronicle-note {
+  margin: 0;
+  max-width: 44ch;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  /* Optically seat the note against the year's cap height rather than its
+     line box, which otherwise sits noticeably high. */
+  padding-top: 0.22em;
+}
+
+@media (max-width: 640px) {
+  /* Right-aligned years against a centre spine collapse at this width, so
+     the spine moves to the margin and each entry stacks beneath it. */
+  .chronicle {
+    padding-left: 1.35rem;
+    gap: 1.6rem;
+  }
+
+  .chronicle::before { left: 0; margin-left: 0; }
+
+  .chronicle-entry {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+
+  .chronicle-year { text-align: left; }
+  .chronicle-note { padding-top: 0; }
 }
 
 /* --- Menu --------------------------------------------------------------- */
